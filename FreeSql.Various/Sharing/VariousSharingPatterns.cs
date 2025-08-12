@@ -3,6 +3,12 @@ using FreeSql.Various.Sharing.Pattern;
 
 namespace FreeSql.Various.Sharing;
 
+/// <summary>
+/// 支持多种分库模式
+/// </summary>
+/// <param name="schedule"></param>
+/// <param name="tenantContext"></param>
+/// <typeparam name="TDbKey"></typeparam>
 public class VariousSharingPatterns<TDbKey>(FreeSqlSchedule schedule, VariousTenantContext tenantContext) where TDbKey : notnull
 {
     /// <summary>
@@ -14,7 +20,7 @@ public class VariousSharingPatterns<TDbKey>(FreeSqlSchedule schedule, VariousTen
     /// <summary>
     /// 哈希分库
     /// </summary>
-    public HashSharingPattern<TDbKey> Hash => new HashSharingPattern<TDbKey>();
+    public HashSharingPattern<TDbKey> Hash => new HashSharingPattern<TDbKey>(schedule, tenantContext);
 
 
     /// <summary>

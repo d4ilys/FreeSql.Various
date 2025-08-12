@@ -2,8 +2,13 @@
 
 namespace Demo01;
 
-public enum DbEnum { Basics, Db2 }
+public enum DbEnum
+{
+    Basics,
+    Order,
+    Product
+}
+
 public class FreeSqlVarious : FreeSqlVarious<DbEnum>
 {
-
 }

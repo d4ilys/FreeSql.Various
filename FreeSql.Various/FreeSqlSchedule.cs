@@ -17,8 +17,18 @@ public class FreeSqlSchedule
         return _idleBus.Get(key);
     }
 
+    public IdleBus<string, IFreeSql> GetIdleBus()
+    {
+        return _idleBus;
+    }
+
     public bool Register(string key, Func<IFreeSql> func)
     {
         return _idleBus.TryRegister(key, func);
+    }
+
+    public bool IsRegistered(string key)
+    {
+        return _idleBus.Exists(key);
     }
 }

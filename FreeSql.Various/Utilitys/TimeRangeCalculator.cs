@@ -3,13 +3,13 @@
 public static class TimeRangeCalculator
 {
     /// <summary>
-    /// 根据输入时间、分库开始时间和周期计算所属数据库名称
+    /// 根据输入时间、分库开始时间和周期计算所属 时间
     /// </summary>
     /// <param name="inputTime">需要计算的时间</param>
     /// <param name="startTime">分库开始时间</param>
     /// <param name="period">周期字符串，格式为"数值 单位"，如"1 Year"、"1 Month"、"1 Day"</param>
     /// <returns>所属数据库名称</returns>
-    public static string GetTimeString(DateTime inputTime, DateTime startTime, string period)
+    public static string GetBelongTime(DateTime inputTime, DateTime startTime, string period)
     {
         // 解析周期信息
         var (periodValue, periodUnit) = ParsePeriod(period);
@@ -32,7 +32,7 @@ public static class TimeRangeCalculator
     /// <param name="shardingStartTime">分库开始时间</param>
     /// <param name="period">周期字符串，格式为"数值 单位"</param>
     /// <returns>日期范围内涉及的所有数据库名称</returns>
-    public static List<string> GetTimeStringInRange(DateTime startDate, DateTime endDate,
+    public static List<string> GetBelongTimeRange(DateTime startDate, DateTime endDate,
         DateTime shardingStartTime, string period)
     {
         if (startDate > endDate)

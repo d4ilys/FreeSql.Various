@@ -4,9 +4,9 @@ public class TimeRangeShardingRegisterConfigure
 {
     public required string DatabaseNamingTemplate { get; set; }
 
-    public required DateTime StartTime { get; set; }
+    public required DateTime SharingStartTime { get; set; }
 
-    public bool IsTenant { get; set; } = false;
+    public required bool IsTenant { get; set; }
 
     /// <summary>
     /// 分库周期 例如 1 Year, 1 Month, 1 Day
