@@ -135,7 +135,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
             }
             catch (Exception e)
             {
-                ConsoleHelper.Error<CrossDatabaseTransactionAchieve<TDbKey>>($"【多库事务提交失败修改日志信息失败「{_logId}」】发生异常 {e}.");
+                VariousConsole.Error<CrossDatabaseTransactionAchieve<TDbKey>>($"【多库事务提交失败修改日志信息失败「{_logId}」】发生异常 {e}.");
             }
             finally
             {
@@ -175,7 +175,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
             catch (Exception ex)
             {
                 Rollback();
-                ConsoleHelper.Error<CrossDatabaseTransactionAchieve<TDbKey>>($"【多库事务提交失败「{describe}」】发生异常，其他全部回滚.");
+                VariousConsole.Error<CrossDatabaseTransactionAchieve<TDbKey>>($"【多库事务提交失败「{describe}」】发生异常，其他全部回滚.");
             }
 
             return false;

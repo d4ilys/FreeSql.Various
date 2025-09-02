@@ -87,7 +87,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
             if (!tryGetValue)
             {
-                ConsoleHelper.Error<LocalMessageTableTransactionUnitOfWorker>($"没有找到{taskKey}任务.");
+                VariousConsole.Error<LocalMessageTableTransactionUnitOfWorker>($"没有找到{taskKey}任务.");
                 return false;
             }
 

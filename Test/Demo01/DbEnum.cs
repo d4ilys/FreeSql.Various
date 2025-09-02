@@ -5,6 +5,7 @@ namespace Demo01;
 public enum DbEnum
 {
     Basics,
+    Settings,
     Order,
     Product
 }

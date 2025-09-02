@@ -41,23 +41,27 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
         //绝对正整数
         var hash = Math.Abs(partitionKey.GetHashCode());
 
+        var currTenant = tenantContext.Get();
+
+        var tenantConfigure =
+            configure?.TenantConfigure.FirstOrDefault(t => t.TenantMark == currTenant);
+
+        if (tenantConfigure == null)
+        {
+            throw new ArgumentException($"未找到该租户注册配置信息");
+        }
+
         //取模
-        var locationShard = hash % configure!.Size;
+        var locationShard = hash % tenantConfigure!.Size;
 
         locationShard = locationShard == 0 ? 1 : locationShard;
 
-        var tenant = string.Empty;
-
-        if (configure.IsTenant)
-        {
-            tenant = tenantContext.Get();
-        }
 
         var dbName = DatabaseNameTemplateReplacer.ReplaceTemplate(configure!.DatabaseNamingTemplate,
             new Dictionary<string, string>
             {
-                { "Tenant", tenant },
-                { "Slice", locationShard.ToString() }
+                { "tenant", currTenant },
+                { "slice", locationShard.ToString() }
             });
 
         var freeSql = schedule.Get(dbName);

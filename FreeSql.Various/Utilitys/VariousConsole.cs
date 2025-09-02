@@ -2,7 +2,7 @@
 
 namespace FreeSql.Various.Utilitys;
 
-internal static class ConsoleHelper
+public static class VariousConsole
 {
     private const string Red = "\u001b[31m";
     private const string Normal = "\u001b[0m";
@@ -10,7 +10,7 @@ internal static class ConsoleHelper
     private const string Yellow = "\u001b[33m";
     private const string Magenta = "\u001b[35m";
 
-    static ConsoleHelper()
+    static VariousConsole()
     {
         // 自动按平台启用支持
         TryEnableVirtualTerminal();

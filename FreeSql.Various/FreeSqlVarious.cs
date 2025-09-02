@@ -25,7 +25,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
 
     /// <summary>
     /// 根据数据库枚举获取FreeSql对象
-    /// </summary>
+    /// </summary>    
     /// <param name="dbKey"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>

@@ -173,14 +173,15 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
     }
 
     /// <summary>
-    /// 跨库操作
+    /// 跨库并行操作
     /// </summary>
     /// <param name="dbKey">指定数据库</param>
     /// <param name="startTime">开始时间</param>
     /// <param name="endTime">结束时间</param>
     /// <param name="operation">操作委托</param>
     /// <returns></returns>
-    public async Task<IList<CrossDatabaseOperationOutcome>> CrossDatabaseOperationAsync(TDbKey dbKey, DateTime startTime,
+    public async Task<IList<CrossDatabaseOperationOutcome>> CrossDatabaseOperationAsync(TDbKey dbKey,
+        DateTime startTime,
         DateTime endTime,
         Func<IFreeSql, Task> operation)
     {
@@ -222,7 +223,7 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
     }
 
     /// <summary>
-    /// 跨库操作
+    /// 跨库并行查询
     /// </summary>
     /// <param name="dbKey">指定数据库</param>
     /// <param name="startTime">开始时间</param>
@@ -247,7 +248,7 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
             }
             catch (Exception e)
             {
-                ConsoleHelper.Error<TimeRangeSharingPattern<TDbKey>>($"[{name}]，跨库查询发生异：{e}");
+                VariousConsole.Error<TimeRangeSharingPattern<TDbKey>>($"[{name}]，跨库查询发生异：{e}");
                 return [];
             }
         })).ToList();
@@ -272,20 +273,23 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
             throw new ArgumentException($"未找到该数据库注册配置信息");
         }
 
-        var range = TimeRangeCalculator.GetBelongTime(inputTime, configure!.SharingStartTime, configure.Period);
+        var currTenant = tenantContext.Get();
 
-        var tenant = string.Empty;
+        var timeRangeShardingRegisterTenantConfigure =
+            configure?.TenantConfigure.FirstOrDefault(t => t.TenantMark == currTenant);
 
-        if (configure.IsTenant)
+        if (timeRangeShardingRegisterTenantConfigure == null)
         {
-            tenant = tenantContext.Get();
+            throw new ArgumentException($"未找到该租户注册配置信息");
         }
 
-        var dbName = DatabaseNameTemplateReplacer.ReplaceTemplate(configure.DatabaseNamingTemplate,
+        var range = TimeRangeCalculator.GetBelongTime(inputTime, timeRangeShardingRegisterTenantConfigure!.SharingStartTime, timeRangeShardingRegisterTenantConfigure.Period);
+
+        var dbName = DatabaseNameTemplateReplacer.ReplaceTemplate(configure!.DatabaseNamingTemplate,
             new Dictionary<string, string>
             {
-                { "Tenant", tenant },
-                { "Range", range }
+                { "tenant", currTenant },
+                { "range", range }
             });
 
         return dbName;
@@ -298,23 +302,27 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
         {
             throw new ArgumentException($"未找到该数据库注册配置信息");
         }
+        var currTenant = tenantContext.Get();
 
-        var range = TimeRangeCalculator.GetBelongTimeRange(startTime, endTime, configure!.SharingStartTime,
-            configure.Period);
+        var timeRangeShardingRegisterTenantConfigure =
+            configure?.TenantConfigure.FirstOrDefault(t => t.TenantMark == currTenant);
 
-        var tenant = string.Empty;
-
-        if (configure.IsTenant)
+        if (timeRangeShardingRegisterTenantConfigure == null)
         {
-            tenant = tenantContext.Get();
+            throw new ArgumentException($"未找到该租户注册配置信息");
         }
+
+        var range = TimeRangeCalculator.GetBelongTimeRange(startTime, endTime, timeRangeShardingRegisterTenantConfigure!.SharingStartTime,
+            timeRangeShardingRegisterTenantConfigure.Period);
+
+     
 
         foreach (var time in range)
         {
             var dbName = DatabaseNameTemplateReplacer.ReplaceTemplate(configure.DatabaseNamingTemplate,
                 new Dictionary<string, string>
                 {
-                    { "Tenant", tenant },
+                    { "Tenant", currTenant },
                     { "Range", time }
                 });
 

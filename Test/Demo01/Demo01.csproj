@@ -13,6 +13,14 @@
 
     <ItemGroup>
       <PackageReference Include="FreeSql.DbContext" Version="3.5.212" />
+      <PackageReference Include="FreeSql.Extensions.JsonMap" Version="3.5.213" />
+      <PackageReference Include="FreeSql.Provider.Sqlite" Version="3.5.213" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Databases\1.db">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

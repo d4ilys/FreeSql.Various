@@ -33,7 +33,7 @@ public class TenantSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenan
         var dbName = DatabaseNameTemplateReplacer.ReplaceTemplate(configure!.DatabaseNamingTemplate,
             new Dictionary<string, string>
             {
-                { "Tenant", tenant }
+                { "tenant", tenant }
             });
 
         var freeSql = schedule.Get(dbName);

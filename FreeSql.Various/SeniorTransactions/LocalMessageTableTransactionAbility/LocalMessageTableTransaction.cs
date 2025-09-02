@@ -14,20 +14,31 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
 
     private static Timer _schedulerTimer;
 
+    private Func<string, Task>? _errorMessageNotice = null;
+
     /// <summary>
     /// 启动数据库调度
     /// </summary>
     /// <param name="period">调度周期</param>
+    /// <param name="maxRetries">最大重试次数</param>
     /// <param name="idempotentReentrant">幂等/重入屏障</param>
-    /// <param name="errorMessageNotice">消息通知</param>
-    public void StartScheduler(TimeSpan period, Func<Func<Func<string, Task>, Task>, Task>? idempotentReentrant = null,
-        Func<string, Task>? errorMessageNotice = null
+    public void StartScheduler(TimeSpan period, int maxRetries = 20, Func<Func<Task>, Task>? idempotentReentrant = null
     )
     {
-        _schedulerTimer = new Timer(_ => idempotentReentrant?.Invoke(ScheduleAction), null, period, period);
+        _schedulerTimer = new Timer(o =>
+        {
+            if (idempotentReentrant != null)
+            {
+                idempotentReentrant?.Invoke(ScheduleAction);
+            }
+            else
+            {
+                _ = ScheduleAction();
+            }
+        }, null, period, period);
     }
 
-    private async Task ScheduleAction(Func<string, Task>? errorMessageNotice = null)
+    private async Task ScheduleAction()
     {
         foreach (var db in _schedulerDbs)
         {
@@ -50,14 +61,14 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
                         //超过30分钟了
                         if (DateTime.Now - message.MessageTime > TimeSpan.FromMinutes(30))
                         {
-                            errorMessageNotice?.Invoke($"【本地消息表事务】「{message.TaskKey}」执行超过最大次数20次.");
+                            _errorMessageNotice?.Invoke($"【本地消息表事务】「{message.TaskKey}」执行超过最大次数20次.");
                         }
                     }
                 }
             }
             catch (Exception e)
             {
-                ConsoleHelper.Error<LocalMessageTableTransaction<TDbKey>>($"【本地消息表事务】调度任务异常：{e.Message}");
+                VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>($"【本地消息表事务】调度任务异常：{e.Message}");
             }
         }
     }
@@ -78,6 +89,11 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
     public void RegisterTaskExecutor(string taskKey, Func<string, Task<bool>> execute)
     {
         _tasks.TryAdd(taskKey, execute);
+    }
+
+    public void RegisterErrorMessageNotice(Func<string, Task> errorMessageNotice)
+    {
+        _errorMessageNotice = errorMessageNotice;
     }
 
     /// <summary>
