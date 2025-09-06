@@ -1,4 +1,5 @@
-﻿using FreeSql.Internal.ObjectPool;
+﻿using System.Collections.Concurrent;
+using FreeSql.Internal.ObjectPool;
 using FreeSql.Various.Models;
 using FreeSql.Various.Utilitys;
 using System.Data.Common;
@@ -14,7 +15,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
     {
         //连接池 
         private Dictionary<string, Object<DbConnection>> _connections = new();
-
+      
         //用到的事务
         internal List<BeginTransactions> Transactions = new();
 
@@ -28,7 +29,27 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
         /// 开启事务的FreeSql对象
         /// </summary>
         public CrossDatabaseTransactionFreeSqlAggregate<TDbKey> Orms { get; } =
-            new CrossDatabaseTransactionFreeSqlAggregate<TDbKey>();
+            new();
+
+        //每个sql执行都会触发
+        private void AopOnCurdAfter(object? sender, CurdAfterEventArgs args)
+        {
+            if (args.CurdType != CurdType.Select && CrossDatabaseTransactionSqlLogger.IsLogger())
+            {
+                if (args.DbParms.Any())
+                {
+                    var pars = args.DbParms;
+                    var sql =
+                        $"[Sql]:{args.Sql}{Environment.NewLine}[DbParms]:{string.Join(" ", pars.Select(it => $"{Environment.NewLine}[Database]:{it.ParameterName} [Value]:{it.Value} [Type]:{it.DbType}  "))}";
+
+                    CrossDatabaseTransactionSqlLogger.SetLogger(sql);
+                }
+                else
+                {
+                    CrossDatabaseTransactionSqlLogger.SetLogger(args.Sql);
+                }
+            }
+        }
 
         /// <summary>
         /// 开启事务
@@ -37,17 +58,27 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
         {
             var isMaster = true;
 
+            //事务开始 才需要记录日志
+            CrossDatabaseTransactionSqlLogger.StartLogger();
+
             foreach (var dbInstance in refers)
             {
                 var db = dbInstance.FreeSql;
-
-                db.Aop.CurdAfter += AopOnCurdAfter;
 
                 //获取连接池对象
                 var dbConnection = db.Ado.MasterPool.Get();
 
                 //添加到字典用于归还
                 _connections.TryAdd(dbInstance.Database, dbConnection);
+
+                var lazyInit = CrossDatabaseTransactionCache.InitializedAopOnCurdAfter.GetOrAdd(dbInstance.Database, s => new Lazy<bool>(() =>
+                {
+                    db.Aop.CurdAfter += AopOnCurdAfter;
+                    return true;
+                }));
+
+                //对应的数据库Lazy添加Aop拦截
+                _ = lazyInit.Value;
 
                 //获取事务对象
                 var transaction = dbConnection.Value.BeginTransaction();
@@ -57,30 +88,8 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
                 Orms.Add(new CrossDatabaseTransactionFreeSql(db, transaction));
 
                 if (isMaster) isMaster = false;
-
-                //CurrentSqlLogContext.ClearSqlLog();
             }
         }
-
-        private void AopOnCurdAfter(object? sender, CurdAfterEventArgs args)
-        {
-            if (args.CurdType != CurdType.Select)
-            {
-                if (args.DbParms.Any())
-                {
-                    var pars = args.DbParms;
-                    var sql =
-                        $"[Sql]:{args.Sql}{Environment.NewLine}[DbParms]:{string.Join(" ", pars.Select(it => $"{Environment.NewLine}[Database]:{it.ParameterName} [Value]:{it.Value} [Type]:{it.DbType}  "))}";
-
-                    CrossDatabaseTransactionSqlLogger.Set(sql);
-                }
-                else
-                {
-                    CrossDatabaseTransactionSqlLogger.Set(args.Sql);
-                }
-            }
-        }
-
 
         //提交事务
         //这里的思路：第一个事务必须成功，因为第一个事务需要记录这个事务执行的信息，如果它Common失败，其他事务全部回滚
@@ -139,7 +148,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
             }
             finally
             {
-                // CurrentSqlLogContext.ClearSqlLog();
+                CrossDatabaseTransactionSqlLogger.Clear();
                 if (isSuccess == false) //事件注册
                     OnCommitFail?.Invoke(_logId);
             }
@@ -152,14 +161,13 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
         {
             try
             {
-                //log.exec_sql = JsonSerializer.Serialize(CurrentSqlLogContext.GetSqlLog());
                 var firstIFreeSql = refers.First().FreeSql;
 
                 var log = new CrossDatabaseTransactionLocalMessage
                 {
                     Describe = describe,
                     CreateTime = DateTime.Now,
-                    ExecSql = null,
+                    ExecSql = CrossDatabaseTransactionSqlLogger.GetLogger(),
                     ResultMsg = null,
                     Successful = true
                 };
@@ -231,19 +239,18 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
                         var db = key.FreeSql;
                         //使用完毕归还资源
                         db.Ado.MasterPool.Return(_connections[key.Database]);
-                        db.Aop.CurdAfter -= AopOnCurdAfter;
                     }
                     catch
                     {
                         continue;
                     }
                 }
-
-                _connections = null;
-                Transactions = null;
             }
             finally
             {
+                CrossDatabaseTransactionSqlLogger.Clear();
+                _connections = null;
+                Transactions = null;
                 GC.SuppressFinalize(this);
             }
         }

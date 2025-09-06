@@ -7,6 +7,9 @@ public enum DbEnum
     Basics,
     Settings,
     Order,
+    /// <summary>
+    /// Hash分片
+    /// </summary>
     Product
 }
 

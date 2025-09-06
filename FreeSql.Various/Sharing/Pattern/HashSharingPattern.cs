@@ -38,8 +38,6 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
             throw new Exception($"未找到该数据库注册配置信息");
         }
 
-        //绝对正整数
-        var hash = Math.Abs(partitionKey.GetHashCode());
 
         var currTenant = tenantContext.Get();
 
@@ -51,11 +49,7 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
             throw new ArgumentException($"未找到该租户注册配置信息");
         }
 
-        //取模
-        var locationShard = hash % tenantConfigure!.Size;
-
-        locationShard = locationShard == 0 ? 1 : locationShard;
-
+        var locationShard = GetSlice(partitionKey, tenantConfigure);
 
         var dbName = DatabaseNameTemplateReplacer.ReplaceTemplate(configure!.DatabaseNamingTemplate,
             new Dictionary<string, string>
@@ -73,6 +67,7 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
             FreeSql = freeSql
         };
     }
+
 
     public IEnumerable<IFreeSql> UseAll(TDbKey dbKey)
     {
@@ -106,5 +101,15 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
         {
             schedule.Register(item.Database, item.BuildIFreeSqlDelegate);
         }
+    }
+
+    private int GetSlice(string partitionKey, HashShardingRegisterTenantConfigure tenantConfigure)
+    {
+        //绝对正整数
+        var hash = Math.Abs(partitionKey.GetHashCode());
+        //取模
+        var locationShard = hash % tenantConfigure!.Size;
+
+        return locationShard + 1;
     }
 }

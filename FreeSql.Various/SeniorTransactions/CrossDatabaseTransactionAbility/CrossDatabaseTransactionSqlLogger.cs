@@ -7,7 +7,24 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
         private static readonly AsyncLocal<List<string>> Logs =
             new AsyncLocal<List<string>>();
 
-        internal static void Set(string log)
+        private static readonly AsyncLocal<bool> IsStartLogger = new();
+
+        internal static void StartLogger()
+        {
+            IsStartLogger.Value = true;
+        }
+
+        internal static void StopLogger()
+        {
+            IsStartLogger.Value = false;
+        }
+
+        internal static bool IsLogger()
+        {
+            return IsStartLogger.Value;
+        }
+
+        internal static void SetLogger(string log)
         {
             Logs.Value ??= [];
             Logs.Value.Add(log);
@@ -16,12 +33,13 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
         internal static void Clear()
         {
             Logs.Value?.Clear();
+            StopLogger();
         }
 
 
-        public static string Get()
+        public static string GetLogger()
         {
-            return JsonSerializer.Serialize(Logs.Value);
+            return Logs.Value != null ? string.Join(",", Logs.Value) : string.Empty;
         }
     }
 }
