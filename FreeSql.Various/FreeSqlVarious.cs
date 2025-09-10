@@ -63,7 +63,12 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     public void Register(TDbKey dbKey, Func<IFreeSql> create)
     {
         var name = dbKey.ToString();
-        if (name != null) _schedule.Register(name, create);
+        if (name != null)
+            _schedule.Register(name, () =>
+            {
+                var freeSql = FreeSqlRegisterShim.Create(create);
+                return freeSql;
+            });
     }
 
     /// <summary>

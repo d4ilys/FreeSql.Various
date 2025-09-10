@@ -9,10 +9,10 @@ namespace FreeSql.Various.Utilitys
 {
     internal class VariousMemoryCache
     {
-        /// <summary>
-        /// 初始化CurdAfter事件
-        /// </summary>
-        internal static readonly ConcurrentDictionary<string, Lazy<bool>> InitializedAopOnCurdAfter = new();
+        ///// <summary>
+        ///// 初始化CurdAfter事件
+        ///// </summary>
+        //internal static readonly ConcurrentDictionary<string, Lazy<bool>> InitializedAopOnCurdAfter = new();
 
         /// <summary>
         ///  同步本地消息表

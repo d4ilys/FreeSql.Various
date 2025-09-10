@@ -54,12 +54,19 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                 {
                     try
                     {
-                        tranFreeSql.CodeFirst.SyncStructure<LocalMessageTable>();
+                        var key = schedule.GetIdleBus()
+                            .GetKeys(db =>
+                                db.Ado.ConnectionString == _fsqlConnectionString && db.Ado.DataType == _fsqlDataType)
+                            .FirstOrDefault();
+
+                        var db = schedule.Get(key!);
+                        db.CodeFirst.SyncStructure<LocalMessageTable>();
                     }
                     catch (Exception e)
                     {
                         VariousConsole.Error<LocalMessageTableTransactionUnitOfWorker>(
                             $"同步本地消息表失败「{tranFreeSql.Ado.ConnectionString}」,「Exception」: {e}");
+
                         return false;
                     }
 

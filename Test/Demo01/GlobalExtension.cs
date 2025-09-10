@@ -1,19 +1,17 @@
-﻿using FreeSql;
+﻿using System.Data.Common;
+using FreeSql;
+using FreeSql.Various;
 using FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility;
 
 namespace Demo01
 {
     public static class GlobalExtension
     {
-        public static LocalMessageTableTransactionUnitOfWorker InjectLocalMessageTable(
-            this IUnitOfWork freeSqlUnitOfWork, string taskKey, string content)
+        public static LocalMessageTableTransactionUnitOfWorker InjectLocalMessageTableEx(
+            this IUnitOfWork freeSqlUnitOfWork, string taskKey, string content, bool activeDo)
         {
             var various = FreeSqlVariousInstance.Various;
-            var localMessageTableTransactionUnitOfWorker =
-                various.Transactions.LocalMessageTableTransaction.CreateUnitOfWorker();
-            var tranFreeSql = freeSqlUnitOfWork.Orm;
-            localMessageTableTransactionUnitOfWorker.Reliable(tranFreeSql, taskKey, content);
-            return localMessageTableTransactionUnitOfWorker;
+            return freeSqlUnitOfWork.InjectLocalMessageTable(various, taskKey, content, activeDo);
         }
     }
 }

@@ -129,7 +129,11 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
         Cache.TryAdd(dbKey, registerConfigure);
         foreach (var item in registerConfigure.FreeSqlRegisterItems)
         {
-            schedule.Register(item.Database, item.BuildIFreeSqlDelegate);
+            schedule.Register(item.Database, () =>
+            {
+                var freeSql = FreeSqlRegisterShim.Create(item.BuildIFreeSqlDelegate);
+                return freeSql;
+            });
         }
     }
 
@@ -283,7 +287,9 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
             throw new ArgumentException($"未找到该租户注册配置信息");
         }
 
-        var range = TimeRangeCalculator.GetBelongTime(inputTime, timeRangeShardingRegisterTenantConfigure!.SharingStartTime, timeRangeShardingRegisterTenantConfigure.Period);
+        var range = TimeRangeCalculator.GetBelongTime(inputTime,
+            timeRangeShardingRegisterTenantConfigure!.SharingStartTime,
+            timeRangeShardingRegisterTenantConfigure.Period);
 
         var dbName = DatabaseNameTemplateReplacer.ReplaceTemplate(configure!.DatabaseNamingTemplate,
             new Dictionary<string, string>
@@ -302,6 +308,7 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
         {
             throw new ArgumentException($"未找到该数据库注册配置信息");
         }
+
         var currTenant = tenantContext.Get();
 
         var timeRangeShardingRegisterTenantConfigure =
@@ -312,10 +319,9 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
             throw new ArgumentException($"未找到该租户注册配置信息");
         }
 
-        var range = TimeRangeCalculator.GetBelongTimeRange(startTime, endTime, timeRangeShardingRegisterTenantConfigure!.SharingStartTime,
+        var range = TimeRangeCalculator.GetBelongTimeRange(startTime, endTime,
+            timeRangeShardingRegisterTenantConfigure!.SharingStartTime,
             timeRangeShardingRegisterTenantConfigure.Period);
-
-     
 
         foreach (var time in range)
         {

@@ -71,7 +71,11 @@ public class TenantSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenan
         Cache.TryAdd(dbKey, registerConfigure);
         foreach (var item in registerConfigure.FreeSqlRegisterItems)
         {
-            schedule.Register(item.Database, item.BuildIFreeSqlDelegate);
+            schedule.Register(item.Database,() =>
+            {
+                var freeSql = FreeSqlRegisterShim.Create(item.BuildIFreeSqlDelegate);
+                return freeSql;
+            });
         }
     }
 }

@@ -31,25 +31,6 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
         public CrossDatabaseTransactionFreeSqlAggregate<TDbKey> Orms { get; } =
             new();
 
-        //每个sql执行都会触发
-        private void AopOnCurdAfter(object? sender, CurdAfterEventArgs args)
-        {
-            if (args.CurdType != CurdType.Select && CrossDatabaseTransactionSqlLogger.IsLogger())
-            {
-                if (args.DbParms.Any())
-                {
-                    var pars = args.DbParms;
-                    var sql =
-                        $"[Sql]:{args.Sql}{Environment.NewLine}[DbParms]:{string.Join(" ", pars.Select(it => $"{Environment.NewLine}[Database]:{it.ParameterName} [Value]:{it.Value} [Type]:{it.DbType}  "))}";
-
-                    CrossDatabaseTransactionSqlLogger.SetLogger(sql);
-                }
-                else
-                {
-                    CrossDatabaseTransactionSqlLogger.SetLogger(args.Sql);
-                }
-            }
-        }
 
         /// <summary>
         /// 开启事务
@@ -71,14 +52,15 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
                 //添加到字典用于归还
                 _connections.TryAdd(dbInstance.Database, dbConnection);
 
-                var lazyInit = VariousMemoryCache.InitializedAopOnCurdAfter.GetOrAdd(dbInstance.Database, s => new Lazy<bool>(() =>
-                {
-                    db.Aop.CurdAfter += AopOnCurdAfter;
-                    return true;
-                }));
+                //Lazy方式绑定CurdAfter事件,避免重复绑定
+                //var lazyInit = VariousMemoryCache.InitializedAopOnCurdAfter.GetOrAdd(dbInstance.Database, s => new Lazy<bool>(() =>
+                //{
+                //    db.Aop.CurdAfter += AopOnCurdAfter;
+                //    return true;
+                //}));
 
                 //对应的数据库Lazy添加Aop拦截
-                _ = lazyInit.Value;
+                //_ = lazyInit.Value;
 
                 //获取事务对象
                 var transaction = dbConnection.Value.BeginTransaction();

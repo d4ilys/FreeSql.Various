@@ -124,16 +124,12 @@ class Program
 
         using var repositoryUnitOfWork = Various.Use(DbEnum.Basics).CreateUnitOfWork();
 
-        //注入本地消息表 返回本地消息表单元工作
-        var localMessageTableUnitOfWorker =
-            repositoryUnitOfWork.InjectLocalMessageTable("UserLoginCodeMessage", "342342");
+        repositoryUnitOfWork.InjectLocalMessageTableEx("UserLoginCodeMessage", "342342", true);
 
         var orm = repositoryUnitOfWork.Orm;
 
         await orm.Delete<object>().Where(s => true).ExecuteAffrowsAsync();
 
         repositoryUnitOfWork.Commit();
-
-        _ = localMessageTableUnitOfWorker.DoAsync();
     }
 }
