@@ -71,7 +71,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
                 //添加到字典用于归还
                 _connections.TryAdd(dbInstance.Database, dbConnection);
 
-                var lazyInit = CrossDatabaseTransactionCache.InitializedAopOnCurdAfter.GetOrAdd(dbInstance.Database, s => new Lazy<bool>(() =>
+                var lazyInit = VariousMemoryCache.InitializedAopOnCurdAfter.GetOrAdd(dbInstance.Database, s => new Lazy<bool>(() =>
                 {
                     db.Aop.CurdAfter += AopOnCurdAfter;
                     return true;

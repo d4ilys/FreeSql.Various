@@ -25,9 +25,11 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         /// <param name="tranFreeSql">事务对象</param>
         /// <param name="taskKey">任务Key</param>
         /// <param name="content">任务内容</param>
-        /// <param name="describe">任务描述</param>
+        /// <param name="group">任务组</param>
+        /// <param name="groupEnsureOrderliness">任务组中的任务是否强制保证顺序「如果其中一个任务失败回阻塞其后的所有任务」</param>
         /// <exception cref="Exception"></exception>
-        public void Reliable(ref IFreeSql tranFreeSql, string taskKey, string content, string describe = "")
+        public void Reliable(IFreeSql tranFreeSql, string taskKey, string content, string group = "main",
+            bool groupEnsureOrderliness = false)
         {
             // 一个对象 防止绑定多次
             if (Interlocked.Add(ref _reliableCount, 1) > 1)
@@ -43,16 +45,41 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
             _taskKey = taskKey;
 
+            VariousMemoryCache.LocalMessageTableTaskDescribe.TryGetValue(taskKey, out var describe);
+
+            //执行的时候同步一次本地消息表
+            var syncResult = VariousMemoryCache.LazySyncLocalMessageTable.GetOrAdd(
+                tranFreeSql.Ado.ConnectionString.GetHashCode(),
+                new Lazy<bool>(() =>
+                {
+                    try
+                    {
+                        tranFreeSql.CodeFirst.SyncStructure<LocalMessageTable>();
+                    }
+                    catch (Exception e)
+                    {
+                        VariousConsole.Error<LocalMessageTableTransactionUnitOfWorker>(
+                            $"同步本地消息表失败「{tranFreeSql.Ado.ConnectionString}」,「Exception」: {e}");
+                        return false;
+                    }
+
+                    return true;
+                }));
+
+            if (!syncResult.Value) return;
+
             //添加消息表数据
-            tranFreeSql.Insert(new FinalConsistencyMessage
+            tranFreeSql.Insert(new LocalMessageTable
             {
                 Id = _id,
                 TaskKey = taskKey,
-                TaskDescribe = describe,
+                Group = group,
+                GroupEnsureOrderliness = groupEnsureOrderliness,
+                TaskDescribe = describe ?? "无描述",
                 MessageGroup = 0,
                 MessageTime = DateTime.Now,
                 Retries = 1,
-                MessageContent = content
+                MessageContent = content,
             }).ExecuteAffrows();
         }
 
@@ -107,14 +134,14 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
             //补偿则删除本条消息
             if (execResult)
             {
-                await db.Delete<FinalConsistencyMessage>().Where(f => f.Id == _id).ExecuteAffrowsAsync();
+                await db.Delete<LocalMessageTable>().Where(f => f.Id == _id).ExecuteAffrowsAsync();
             }
             else
             {
                 //记录失败原因
                 if (exception != null)
                 {
-                    await db.Update<FinalConsistencyMessage>()
+                    await db.Update<LocalMessageTable>()
                         .Set(f => f.ErrorMessage, exception.ToString())
                         .Where(f => f.Id == _id)
                         .ExecuteAffrowsAsync();

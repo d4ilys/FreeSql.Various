@@ -1,6 +1,7 @@
 ﻿using Demo01.Tables;
 using Demo01.TestClass;
 using FreeSql.Various;
+using FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility;
 using FreeSql.Various.Sharing;
 using static Demo01.FreeSqlVariousInstance;
 
@@ -64,7 +65,6 @@ class Program
             DateTime.Parse("2025-01-02"),
             async (db) => await db.Select<object>().ToListAsync());
 
-
         var queryResults = await Various.SharingPatterns.TimeRange.CrossDatabaseQueryAsync(DbEnum.Basics,
             DateTime.Parse("2023-01-01"),
             DateTime.Parse("2025-01-02"), async db => await db.Select<CrossDatabaseOperationOutcome>().ToListAsync());
@@ -111,27 +111,28 @@ class Program
         localMessageTableTransaction.RegisterScheduleDatabase(Various.Use(DbEnum.Basics));
 
         //注册任务
-        localMessageTableTransaction.RegisterTaskExecutor("UserLoginCodeMessage", content =>
+        localMessageTableTransaction.RegisterTaskExecutor("UserLoginCodeMessage", "用户注册完成后发送短信.", async content =>
         {
-            int timeout = 0;
-
-            //根据Content 发送消息
-            return Task.FromResult(true);
+            var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync("http://baidu.com");
+            var isSuccessStatusCode = response.IsSuccessStatusCode;
+            return isSuccessStatusCode;
         });
 
         //启动调度器
-        localMessageTableTransaction.StartScheduler(TimeSpan.FromMinutes(3));
-
-        var localMessageTableUnitOfWorker = localMessageTableTransaction.CreateUnitOfWorker();
+        localMessageTableTransaction.StartScheduler(TimeSpan.FromMinutes(3), TimeSpan.FromSeconds(30));
 
         using var repositoryUnitOfWork = Various.Use(DbEnum.Basics).CreateUnitOfWork();
+
+        //注入本地消息表 返回本地消息表单元工作
+        var localMessageTableUnitOfWorker =
+            repositoryUnitOfWork.InjectLocalMessageTable("UserLoginCodeMessage", "342342");
 
         var orm = repositoryUnitOfWork.Orm;
 
         await orm.Delete<object>().Where(s => true).ExecuteAffrowsAsync();
 
-        //创建本地消息表事务工作单元
-        localMessageTableUnitOfWorker.Reliable(ref orm, "UserLoginCodeMessage", "342342", "用户发送短信后");
+        repositoryUnitOfWork.Commit();
 
         _ = localMessageTableUnitOfWorker.DoAsync();
     }

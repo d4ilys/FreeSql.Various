@@ -1,10 +1,11 @@
 ﻿using FreeSql.Various.Contexts;
 using FreeSql.Various.Models;
 using FreeSql.Various.SeniorTransactions;
+using FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility;
 using FreeSql.Various.Sharing;
 using FreeSql.Various.Utilitys;
+using System;
 using System.Collections.Concurrent;
-using FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility;
 
 namespace FreeSql.Various;
 
@@ -13,7 +14,6 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     private readonly FreeSqlSchedule _schedule;
 
     private readonly VariousTenantContext _tenantContextContext;
-
 
     protected FreeSqlVarious()
     {
