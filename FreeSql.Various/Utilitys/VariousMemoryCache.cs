@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,5 +35,8 @@ namespace FreeSql.Various.Utilitys
         /// 本地消息表事务任务调度数据库
         /// </summary>
         internal static readonly HashSet<IFreeSql> LocalMessageTableTransactionSchedulerDbs = new();
+
+
+        internal static List<Timer> SchedulerTimers = new();
     }
 }

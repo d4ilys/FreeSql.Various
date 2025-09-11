@@ -5,7 +5,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
     /// <summary>
     /// 记录事务执行的日志
     /// </summary>
-    [Table(Name = "cross_database_transaction_local_message")]
+    [Table(Name = "various_cross_database_transaction_local_message")]
     public class CrossDatabaseTransactionLocalMessage
     {
         [Column(IsIdentity = true, Name = "id")]

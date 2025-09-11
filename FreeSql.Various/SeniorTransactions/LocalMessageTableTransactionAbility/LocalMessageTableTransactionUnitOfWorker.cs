@@ -5,7 +5,8 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 {
     public class LocalMessageTableTransactionUnitOfWorker(
         ConcurrentDictionary<string, Func<string, Task<bool>>> tasks,
-        FreeSqlSchedule schedule)
+        FreeSqlSchedule schedule,
+        LocalMessageTableDispatchConfig config)
     {
         private uint _reliableCount = 0;
 
@@ -26,10 +27,8 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         /// <param name="taskKey">任务Key</param>
         /// <param name="content">任务内容</param>
         /// <param name="group">任务组</param>
-        /// <param name="groupEnsureOrderliness">任务组中的任务是否强制保证顺序「如果其中一个任务失败回阻塞其后的所有任务」</param>
         /// <exception cref="Exception"></exception>
-        public void Reliable(IFreeSql tranFreeSql, string taskKey, string content, string group = "main",
-            bool groupEnsureOrderliness = false)
+        public void Reliable(IFreeSql tranFreeSql, string taskKey, string content, string group)
         {
             // 一个对象 防止绑定多次
             if (Interlocked.Add(ref _reliableCount, 1) > 1)
@@ -60,7 +59,8 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                             .FirstOrDefault();
 
                         var db = schedule.Get(key!);
-                        db.CodeFirst.SyncStructure<LocalMessageTable>();
+                        db.CodeFirst.SyncStructure<LocalMessageGroupDatabaseTable>();
+                        db.CodeFirst.SyncStructure<LocalMessageDatabaseTable>();
                     }
                     catch (Exception e)
                     {
@@ -75,19 +75,39 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
             if (!syncResult.Value) return;
 
-            //添加消息表数据
-            tranFreeSql.Insert(new LocalMessageTable
+            if (string.IsNullOrEmpty(group))
             {
-                Id = _id,
-                TaskKey = taskKey,
-                Group = group,
-                GroupEnsureOrderliness = groupEnsureOrderliness,
-                TaskDescribe = describe ?? "无描述",
-                MessageGroup = 0,
-                MessageTime = DateTime.Now,
-                Retries = 1,
-                MessageContent = content,
-            }).ExecuteAffrows();
+                //添加消息表数据
+                tranFreeSql.Insert(new LocalMessageDatabaseTable
+                {
+                    Id = _id,
+                    TaskKey = taskKey,
+                    TaskDescribe = describe ?? "无描述",
+                    MessageTime = DateTime.Now,
+                    Retries = 1,
+                    MessageContent = content,
+                }).ExecuteAffrows();
+            }
+            else
+            {
+                var groupIsConfig = config.GroupSchedules.TryGetValue(group, out var groupDispatchSchedule);
+
+                var groupEnsureOrderliness = groupIsConfig && groupDispatchSchedule is { GroupEnsureOrderliness: true };
+
+                //添加消息表数据
+                tranFreeSql.Insert(new LocalMessageGroupDatabaseTable
+                {
+                    Id = _id,
+                    TaskKey = taskKey,
+                    Group = group,
+                    GroupEnsureOrderliness = groupEnsureOrderliness,
+                    TaskDescribe = describe ?? "无描述",
+                    MessageGroup = 0,
+                    MessageTime = DateTime.Now,
+                    Retries = 1,
+                    MessageContent = content,
+                }).ExecuteAffrows();
+            }
         }
 
         /// <summary>
@@ -141,14 +161,14 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
             //补偿则删除本条消息
             if (execResult)
             {
-                await db.Delete<LocalMessageTable>().Where(f => f.Id == _id).ExecuteAffrowsAsync();
+                await db.Delete<LocalMessageGroupDatabaseTable>().Where(f => f.Id == _id).ExecuteAffrowsAsync();
             }
             else
             {
                 //记录失败原因
                 if (exception != null)
                 {
-                    await db.Update<LocalMessageTable>()
+                    await db.Update<LocalMessageGroupDatabaseTable>()
                         .Set(f => f.ErrorMessage, exception.ToString())
                         .Where(f => f.Id == _id)
                         .ExecuteAffrowsAsync();

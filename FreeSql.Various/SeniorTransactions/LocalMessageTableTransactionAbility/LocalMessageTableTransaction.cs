@@ -8,142 +8,65 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 /// </summary>
 public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
 {
-    private static Timer _schedulerTimer;
+    private LocalMessageTableDispatchConfig? _dispatchConfig = null;
 
-    private Func<string, Task>? _errorMessageNotice = null;
-
-    private int _maxRetries;
 
     /// <summary>
     /// 启动数据库调度
     /// </summary>
-    /// <param name="period">调度周期</param>
-    /// <param name="dueTime">第一次执行时间</param>
-    /// <param name="maxRetries">最大重试次数</param>
-    /// <param name="idempotentReentrant">幂等/重入屏障</param>
-    public void StartScheduler(TimeSpan period, TimeSpan dueTime, int maxRetries = 20,
-        Func<Func<Task>, Task>? idempotentReentrant = null
-    )
+    public void DispatchRunning()
     {
-        _maxRetries = maxRetries;
-        _schedulerTimer = new Timer(o =>
+        if (_dispatchConfig == null)
+            throw new Exception("请先调用ConfigDispatch方法进行配置");
+
+        var mainSchedulerTimer = new Timer(o =>
         {
-            if (idempotentReentrant != null)
+            if (_dispatchConfig.IdempotentReentrant != null)
             {
-                idempotentReentrant?.Invoke(ScheduleAction);
+                _dispatchConfig.IdempotentReentrant?.Invoke(MainDispatchAction);
             }
             else
             {
-                _ = ScheduleAction();
+                _ = MainDispatchAction();
             }
-        }, null, dueTime, period);
-    }
+        }, null, _dispatchConfig.MainSchedule.DueTime, _dispatchConfig.MainSchedule.Period);
 
-    private async Task ScheduleAction()
-    {
-        foreach (var db in VariousMemoryCache.LocalMessageTableTransactionSchedulerDbs)
+        VariousMemoryCache.SchedulerTimers.Add(mainSchedulerTimer);
+
+        //启动分组调度
+        foreach (var localMessageTableGroupDispatchSchedule in _dispatchConfig.GroupSchedules)
         {
-            try
-            {
-                //获取小于当前一分钟内的消息，防止添加成功后立即执行
-                var messageStartTime = DateTime.Now.AddMinutes(-1);
+            var currentSchedule = localMessageTableGroupDispatchSchedule;
 
-                //执行的时候同步一次本地消息表
-                var syncResult = VariousMemoryCache.LazySyncLocalMessageTable.GetOrAdd(
-                    db.Ado.ConnectionString.GetHashCode(),
-                    new Lazy<bool>(() =>
+            var groupSchedulerTimer = new Timer(o =>
+                {
+                    if (_dispatchConfig.IdempotentReentrant != null)
                     {
-                        try
-                        {
-                            db.CodeFirst.SyncStructure<LocalMessageTable>();
-                        }
-                        catch (Exception e)
-                        {
-                            VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>(
-                                $"同步本地消息表失败「{db.Ado.ConnectionString}」,「Exception」: {e}");
-                            return false;
-                        }
-
-                        return true;
-                    }));
-
-                if (syncResult.Value == false) break;
-
-                var finalConsistencyMessages = await db.Select<LocalMessageTable>()
-                    .Where(m => m.MessageTime < messageStartTime)
-                    .ToListAsync();
-
-                _ = Parallel.ForEachAsync(
-                    finalConsistencyMessages.ToLookup(f => new { f.Group, f.GroupEnsureOrderliness }),
-                    new ParallelOptions { MaxDegreeOfParallelism = 5 }, async (messages, token) =>
+                        _dispatchConfig.IdempotentReentrant?.Invoke(() => GroupDispatchAction(currentSchedule.Key));
+                    }
+                    else
                     {
-                        bool groupEnsureOrderliness = messages.Key.GroupEnsureOrderliness;
-                        foreach (var message in messages)
-                        {
-                            if (groupEnsureOrderliness)
-                            {
-                                //如果该组的ensureOrderliness为true，则需要确保该组内的消息顺序
-                                var res = await GroupEnsureOrderlinessLogicAsync(message, db);
-                                if (!res) break;
-                            }
-                            else
-                            {
-                                NormalGroupLogic(message, db);
-                            }
-                        }
-                    });
-            }
-            catch (Exception e)
-            {
-                VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>($"【本地消息表事务】调度任务异常：{e.Message}");
-            }
-        }
-    }
-
-    private async Task<bool> GroupEnsureOrderlinessLogicAsync(LocalMessageTable messageTable, IFreeSql db)
-    {
-        if (messageTable.Retries < _maxRetries)
-        {
-            var achieve = new LocalMessageTableTransactionUnitOfWorker(
-                VariousMemoryCache.LocalMessageTableTransactionTasks, schedule);
-            var res = await achieve.ScheduleDoAsync(messageTable.TaskKey, messageTable.MessageContent, db);
-            return res;
-        }
-        else
-        {
-            //超过30分钟了
-            if (DateTime.Now - messageTable.MessageTime > TimeSpan.FromMinutes(30))
-            {
-                _errorMessageNotice?.Invoke($"【本地消息表事务】「{messageTable.TaskKey}」执行超过最大次数20次.");
-            }
-        }
-
-        return false;
-    }
-
-    private void NormalGroupLogic(LocalMessageTable messageTable, IFreeSql db)
-    {
-        if (messageTable.Retries < _maxRetries)
-        {
-            var achieve = new LocalMessageTableTransactionUnitOfWorker(VariousMemoryCache.LocalMessageTableTransactionTasks, schedule);
-            _ = achieve.ScheduleDoAsync(messageTable.TaskKey, messageTable.MessageContent, db);
-        }
-        else
-        {
-            //超过30分钟了
-            if (DateTime.Now - messageTable.MessageTime > TimeSpan.FromMinutes(30))
-            {
-                _errorMessageNotice?.Invoke($"【本地消息表事务】「{messageTable.TaskKey}」执行超过最大次数20次.");
-            }
+                        _ = GroupDispatchAction(currentSchedule.Key);
+                    }
+                }, null,
+                currentSchedule.Value.Schedule.DueTime,
+                currentSchedule.Value.Schedule.Period);
+            VariousMemoryCache.SchedulerTimers.Add(groupSchedulerTimer);
         }
     }
 
     /// <summary>
     /// 注册需要调度的数据库
     /// </summary>
-    public void RegisterScheduleDatabase(params IFreeSql[] dbs)
+    public void RegisterDispatchDatabase(params IFreeSql[] dbs)
     {
         VariousMemoryCache.LocalMessageTableTransactionSchedulerDbs.UnionWith(dbs);
+    }
+
+    public void ConfigDispatch(Action<LocalMessageTableDispatchConfig> configAction)
+    {
+        _dispatchConfig = new LocalMessageTableDispatchConfig();
+        configAction(_dispatchConfig);
     }
 
     /// <summary>
@@ -158,17 +81,169 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
         VariousMemoryCache.LocalMessageTableTransactionTasks.TryAdd(taskKey, execute);
     }
 
-    public void RegisterErrorMessageNotice(Func<string, Task> errorMessageNotice)
-    {
-        _errorMessageNotice = errorMessageNotice;
-    }
-
     /// <summary>
     /// 创建本地消息事务
     /// </summary>
     /// <returns></returns>
     public LocalMessageTableTransactionUnitOfWorker CreateUnitOfWorker()
     {
-        return new LocalMessageTableTransactionUnitOfWorker(VariousMemoryCache.LocalMessageTableTransactionTasks, schedule);
+        return new LocalMessageTableTransactionUnitOfWorker(VariousMemoryCache.LocalMessageTableTransactionTasks,
+            schedule, _dispatchConfig!);
+    }
+
+    private async Task MainDispatchAction()
+    {
+        foreach (var db in VariousMemoryCache.LocalMessageTableTransactionSchedulerDbs)
+        {
+            try
+            {
+                //获取小于当前一分钟内的消息，防止添加成功后立即执行
+                var messageStartTime = DateTime.Now.AddSeconds(-20);
+
+                if (LazySyncLocalMessageTable(db) == false) break;
+
+                var finalConsistencyMessages = await db.Select<LocalMessageDatabaseTable>()
+                    .Where(m => m.MessageTime < messageStartTime)
+                    .ToListAsync();
+
+                foreach (var localMessageDatabaseTable in finalConsistencyMessages)
+                {
+                    NormalGroupLogic(localMessageDatabaseTable, db);
+                }
+            }
+            catch (Exception e)
+            {
+                VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>($"【本地消息表事务】调度任务异常：{e.Message}");
+            }
+        }
+    }
+
+    private async Task GroupDispatchAction(string group)
+    {
+        foreach (var db in VariousMemoryCache.LocalMessageTableTransactionSchedulerDbs)
+        {
+            try
+            {
+                //获取小于当前一分钟内的消息，防止添加成功后立即执行
+                var messageStartTime = DateTime.Now.AddSeconds(-20);
+
+                //执行的时候同步一次本地消息表
+                if (LazySyncLocalMessageTable(db) == false) break;
+
+                var finalConsistencyMessages = await db.Select<LocalMessageGroupDatabaseTable>()
+                    .Where(m => m.MessageTime < messageStartTime)
+                    .Where(m => m.Group == group)
+                    .ToListAsync();
+
+                _dispatchConfig!.GroupSchedules.TryGetValue(group, out var groupDispatchSchedule);
+
+                if (groupDispatchSchedule?.GroupEnsureOrderliness ?? false)
+                {
+                    foreach (var message in finalConsistencyMessages)
+                    {
+                        //如果该组的ensureOrderliness为true，则需要确保该组内的消息顺序
+                        var res = await GroupEnsureOrderlinessLogicAsync(message, db,
+                            groupDispatchSchedule.Schedule.MaxRetries);
+                        if (!res) break;
+                    }
+                }
+                else
+                {
+                    foreach (var message in finalConsistencyMessages)
+                    {
+                        NormalGroupLogic(message, db);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>($"【本地消息表事务】调度任务异常：{e.Message}");
+            }
+        }
+    }
+
+    private bool LazySyncLocalMessageTable(IFreeSql db)
+    {
+        //执行的时候同步一次本地消息表
+        var syncResult = VariousMemoryCache.LazySyncLocalMessageTable.GetOrAdd(
+            db.Ado.ConnectionString.GetHashCode(),
+            new Lazy<bool>(() =>
+            {
+                try
+                {
+                    db.CodeFirst.SyncStructure<LocalMessageGroupDatabaseTable>();
+                    db.CodeFirst.SyncStructure<LocalMessageDatabaseTable>();
+                }
+                catch (Exception e)
+                {
+                    VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>(
+                        $"同步本地消息表失败「{db.Ado.ConnectionString}」,「Exception」: {e}");
+                    return false;
+                }
+
+                return true;
+            }));
+        return syncResult.Value;
+    }
+
+    private async Task<bool> GroupEnsureOrderlinessLogicAsync(LocalMessageDatabaseTable messageGroupDatabaseTable,
+        IFreeSql db, int maxRetries)
+    {
+        try
+        {
+            if (messageGroupDatabaseTable.Retries < maxRetries)
+            {
+                var achieve = new LocalMessageTableTransactionUnitOfWorker(
+                    VariousMemoryCache.LocalMessageTableTransactionTasks, schedule, _dispatchConfig!);
+                var res = await achieve.ScheduleDoAsync(messageGroupDatabaseTable.TaskKey,
+                    messageGroupDatabaseTable.MessageContent, db);
+                return res;
+            }
+            else
+            {
+                //超过30分钟了
+                if (DateTime.Now - messageGroupDatabaseTable.MessageTime > TimeSpan.FromMinutes(30))
+                {
+                    _dispatchConfig!.ErrorMessageNotice?.Invoke(
+                        $"【本地消息表事务】「{messageGroupDatabaseTable.TaskKey}」执行超过最大次数20次.");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>(
+                $"【本地消息表事务】GroupEnsureOrderlinessLogicAsync调度任务异常：{e.Message}");
+            return false;
+        }
+
+        return false;
+    }
+
+    private void NormalGroupLogic(LocalMessageDatabaseTable messageGroupDatabaseTable, IFreeSql db)
+    {
+        try
+        {
+            if (messageGroupDatabaseTable.Retries < _dispatchConfig!.MainSchedule.MaxRetries)
+            {
+                var achieve =
+                    new LocalMessageTableTransactionUnitOfWorker(VariousMemoryCache.LocalMessageTableTransactionTasks,
+                        schedule, _dispatchConfig!);
+                _ = achieve.ScheduleDoAsync(messageGroupDatabaseTable.TaskKey, messageGroupDatabaseTable.MessageContent,
+                    db);
+            }
+            else
+            {
+                //超过30分钟了
+                if (DateTime.Now - messageGroupDatabaseTable.MessageTime > TimeSpan.FromMinutes(30))
+                {
+                    _dispatchConfig!.ErrorMessageNotice?.Invoke(
+                        $"【本地消息表事务】「{messageGroupDatabaseTable.TaskKey}」执行超过最大次数20次.");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>($"【本地消息表事务】NormalGroupLogic调度任务异常：{e.Message}");
+        }
     }
 }

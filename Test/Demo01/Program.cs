@@ -108,7 +108,7 @@ class Program
         var localMessageTableTransaction = Various.Transactions.LocalMessageTableTransaction;
 
         //注册需要调度的数据库
-        localMessageTableTransaction.RegisterScheduleDatabase(Various.Use(DbEnum.Basics));
+        localMessageTableTransaction.RegisterDispatchDatabase(Various.Use(DbEnum.Basics));
 
         //注册任务
         localMessageTableTransaction.RegisterTaskExecutor("UserLoginCodeMessage", "用户注册完成后发送短信.", async content =>
@@ -119,8 +119,27 @@ class Program
             return isSuccessStatusCode;
         });
 
+        localMessageTableTransaction.ConfigDispatch(config =>
+        {
+            config.MainSchedule.Period = TimeSpan.FromMinutes(2);
+            config.MainSchedule.DueTime = TimeSpan.FromSeconds(1);
+            config.MainSchedule.MaxRetries = 20;
+
+            //自定义任务组
+            config.GroupSchedules.Add("OrderConsume", new LocalMessageTableGroupDispatchSchedule
+            {
+                GroupEnsureOrderliness = true,
+                Schedule = new LocalMessageTableDispatchSchedule
+                {
+                    Period = TimeSpan.FromSeconds(20),
+                    DueTime = TimeSpan.FromSeconds(1),
+                    MaxRetries = 10
+                }
+            });
+        });
+
         //启动调度器
-        localMessageTableTransaction.StartScheduler(TimeSpan.FromMinutes(3), TimeSpan.FromSeconds(30));
+        localMessageTableTransaction.DispatchRunning();
 
         using var repositoryUnitOfWork = Various.Use(DbEnum.Basics).CreateUnitOfWork();
 
