@@ -36,7 +36,7 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
         //启动分组调度
         foreach (var localMessageTableGroupDispatchSchedule in _dispatchConfig.GroupSchedules)
         {
-            var currentSchedule = localMessageTableGroupDispatchSchedule;
+           var currentSchedule = localMessageTableGroupDispatchSchedule;
 
             var groupSchedulerTimer = new Timer(o =>
                 {

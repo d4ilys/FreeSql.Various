@@ -15,7 +15,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
     {
         //连接池 
         private Dictionary<string, Object<DbConnection>> _connections = new();
-      
+
         //用到的事务
         internal List<BeginTransactions> Transactions = new();
 
@@ -61,6 +61,18 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
 
                 //对应的数据库Lazy添加Aop拦截
                 //_ = lazyInit.Value;
+
+                if (isMaster)
+                {
+                    var lazyInit = VariousMemoryCache.InitializedCrossDatabaseTransactionLocalMessage.GetOrAdd(
+                        dbInstance.Database, s =>
+                            new Lazy<bool>(() =>
+                            {
+                                db.CodeFirst.SyncStructure<CrossDatabaseTransactionLocalMessage>();
+                                return true;
+                            }));
+                    _ = lazyInit.Value;
+                }
 
                 //获取事务对象
                 var transaction = dbConnection.Value.BeginTransaction();
@@ -126,7 +138,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
             }
             catch (Exception e)
             {
-                VariousConsole.Error<CrossDatabaseTransactionAchieve<TDbKey>>($"【多库事务提交失败修改日志信息失败「{_logId}」】发生异常 {e}.");
+                VariousConsole.Error<CrossDatabaseTransactionAchieve<TDbKey>>($"多库事务提交失败修改日志信息失败「{_logId}」发生异常 {e}.");
             }
             finally
             {

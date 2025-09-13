@@ -12,7 +12,7 @@ public class TenantSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenan
 
     public IFreeSql Use(TDbKey dbKey)
     {
-        var tenant = tenantContext.Get();
+        var tenant = tenantContext.GetCurrent();
         return Use(dbKey, tenant);
     }
 

@@ -16,6 +16,11 @@ namespace FreeSql.Various.Utilitys
         //internal static readonly ConcurrentDictionary<string, Lazy<bool>> InitializedAopOnCurdAfter = new();
 
         /// <summary>
+        ///  同步多库事务本地消息表
+        /// </summary>
+        internal static readonly ConcurrentDictionary<string, Lazy<bool>> InitializedCrossDatabaseTransactionLocalMessage = new();
+
+        /// <summary>
         ///  同步本地消息表
         /// </summary>
         internal static readonly ConcurrentDictionary<int, Lazy<bool>> LazySyncLocalMessageTable = new();

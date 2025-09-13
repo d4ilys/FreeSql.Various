@@ -277,7 +277,7 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
             throw new ArgumentException($"未找到该数据库注册配置信息");
         }
 
-        var currTenant = tenantContext.Get();
+        var currTenant = tenantContext.GetCurrent();
 
         var timeRangeShardingRegisterTenantConfigure =
             configure?.TenantConfigure.FirstOrDefault(t => t.TenantMark == currTenant);
@@ -309,7 +309,7 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
             throw new ArgumentException($"未找到该数据库注册配置信息");
         }
 
-        var currTenant = tenantContext.Get();
+        var currTenant = tenantContext.GetCurrent();
 
         var timeRangeShardingRegisterTenantConfigure =
             configure?.TenantConfigure.FirstOrDefault(t => t.TenantMark == currTenant);

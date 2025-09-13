@@ -11,7 +11,7 @@ namespace FreeSql.Various.Utilitys
 {
     internal class FreeSqlRegisterShim
     {
-        public static IFreeSql Create(Func<IFreeSql> register)
+        internal static IFreeSql Create(Func<IFreeSql> register)
         {
             var fsql = register();
 

@@ -18,6 +18,7 @@ namespace Demo01
             //注册基础设置库
             Various.Register(DbEnum.Settings, () => new FreeSqlBuilder()
                 .UseMonitorCommand(command => VariousConsole.Info<Program>(command.CommandText))
+                .UseNoneCommandParameter(true)
                 .UseConnectionString(DataType.Sqlite, $"Data Source={GenerateDbPath("settings")}")
                 .Build());
 
@@ -25,9 +26,7 @@ namespace Demo01
 
             settingDb.UseJsonMap();
 
-            Various.TenantContext.Set("taobao");
-
-            await DatabaseSettingsInitialize(settingDb);
+            // await DatabaseSettingsInitialize(settingDb);
 
             var tenants = await settingDb.Select<TenantManager>().ToListAsync();
 
@@ -68,7 +67,7 @@ namespace Demo01
                 }
             }
 
-            await DatabaseBusinessInitialize();
+            // await DatabaseBusinessInitialize();
         }
 
 
@@ -90,7 +89,7 @@ namespace Demo01
             {
                 var tenantMark = tenants.First(t => t.Id == databaseManager.TenantId).Mark;
                 var period = databaseManager.Config["Period"].ToString();
-                var startTime = DateTime.Parse(databaseManager.Config["SharingStartTime"].ToString());
+                var startTime = DateTime.Parse(databaseManager.Config["SharingStartTime"].ToString()!);
                 timeRangeConfig.TenantConfigure.Add(new TimeRangeShardingRegisterTenantConfigure
                 {
                     SharingStartTime = startTime,
@@ -108,7 +107,7 @@ namespace Demo01
                             new FreeSqlBuilder()
                                 .UseConnectionString(connection.DataType, connection.ConnectionString)
                                 .UseMonitorCommand(cmd =>
-                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd}"))
+                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd.CommandText}"))
                                 .Build()
                     });
                 }
@@ -152,7 +151,7 @@ namespace Demo01
                             new FreeSqlBuilder()
                                 .UseConnectionString(connection.DataType, connection.ConnectionString)
                                 .UseMonitorCommand(cmd =>
-                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd}"))
+                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd.CommandText}"))
                                 .Build()
                     });
                 }
@@ -186,7 +185,7 @@ namespace Demo01
                             new FreeSqlBuilder()
                                 .UseConnectionString(connection.DataType, connection.ConnectionString)
                                 .UseMonitorCommand(cmd =>
-                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd}"))
+                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd.CommandText}"))
                                 .Build()
                     });
                 }
@@ -385,7 +384,7 @@ namespace Demo01
             async Task ProductInitialize()
             {
                 ConcurrentDictionary<IFreeSql, List<Product>> products = new();
-                string tenant = Various.TenantContext.Get();
+                string tenant = Various.TenantContext.GetCurrent();
                 foreach (var i in Enumerable.Range(1, 10))
                 {
                     var product = new Product
@@ -413,7 +412,7 @@ namespace Demo01
             async Task OrderInitialize()
             {
                 ConcurrentDictionary<IFreeSql, List<Order>> orders = new();
-                string tenant = Various.TenantContext.Get();
+                string tenant = Various.TenantContext.GetCurrent();
                 foreach (var i in Enumerable.Range(1, 10))
                 {
                     var order = new Order

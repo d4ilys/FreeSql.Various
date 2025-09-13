@@ -39,7 +39,7 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
         }
 
 
-        var currTenant = tenantContext.Get();
+        var currTenant = tenantContext.GetCurrent();
 
         var tenantConfigure =
             configure?.TenantConfigure.FirstOrDefault(t => t.TenantMark == currTenant);

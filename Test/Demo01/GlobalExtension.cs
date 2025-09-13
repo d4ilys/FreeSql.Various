@@ -1,5 +1,4 @@
-﻿using System.Data.Common;
-using FreeSql;
+﻿using FreeSql;
 using FreeSql.Various;
 using FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility;
 

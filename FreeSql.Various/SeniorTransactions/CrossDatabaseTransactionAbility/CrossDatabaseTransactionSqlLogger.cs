@@ -4,42 +4,39 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
 {
     internal class CrossDatabaseTransactionSqlLogger
     {
-        private static readonly AsyncLocal<List<string>> Logs =
-            new AsyncLocal<List<string>>();
-
-        private static readonly AsyncLocal<bool> IsStartLogger = new();
+        static readonly AsyncLocal<CrossDatabaseTransactionLoggerContext?> Context = new();
 
         internal static void StartLogger()
         {
-            IsStartLogger.Value = true;
-        }
-
-        internal static void StopLogger()
-        {
-            IsStartLogger.Value = false;
+            Context.Value ??= new CrossDatabaseTransactionLoggerContext();
+            Context.Value.IsLogger = true;
         }
 
         internal static bool IsLogger()
         {
-            return IsStartLogger.Value;
+            return Context.Value!.IsLogger;
         }
 
         internal static void SetLogger(string log)
         {
-            Logs.Value ??= [];
-            Logs.Value.Add(log);
+            Context.Value!.Logs.Add(log);
         }
 
         internal static void Clear()
         {
-            Logs.Value?.Clear();
-            StopLogger();
+            Context.Value = null;
         }
 
-
-        public static string GetLogger()
+        internal static string GetLogger()
         {
-            return Logs.Value != null ? string.Join(",", Logs.Value) : string.Empty;
+            return Context.Value != null ? string.Join(Environment.NewLine, Context.Value.Logs) : string.Empty;
         }
+    }
+
+    internal class CrossDatabaseTransactionLoggerContext
+    {
+        public bool IsLogger { get; set; } = false;
+
+        public List<string> Logs { get; set; } = new();
     }
 }

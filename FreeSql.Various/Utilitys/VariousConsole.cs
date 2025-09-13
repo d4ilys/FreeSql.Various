@@ -19,19 +19,19 @@ public static class VariousConsole
     public static void Info<T>(string text)
     {
         Console.Write(
-            $"{Red}info: {Normal}{typeof(T).FullName}{Environment.NewLine}      {Normal}{text}{Environment.NewLine}");
+            $"{Red}info: {Normal}{typeof(T).FullName}{Environment.NewLine}      {Normal}FreeSql.Various : {text}{Environment.NewLine}");
     }
 
     public static void Warning<T>(string text)
     {
         Console.Write(
-            $"{Yellow}warn: {Normal}{typeof(T).FullName}{Environment.NewLine}      {Normal}{text}{Environment.NewLine}");
+            $"{Yellow}warn: {Normal}{typeof(T).FullName}{Environment.NewLine}      {Normal}FreeSql.Various : {text}{Environment.NewLine}");
     }
 
     public static void Error<T>(string text)
     {
         Console.Write(
-            $"{Magenta}error: {Normal}{typeof(T).FullName}{Environment.NewLine}      {Normal}{text}{Environment.NewLine}");
+            $"{Magenta}error: {Normal}{typeof(T).FullName}{Environment.NewLine}      {Normal}FreeSql.Various : {text}{Environment.NewLine}");
     }
 
 

@@ -9,7 +9,7 @@ public class VariousTenantContext
         Tenant.Value = tenant;
     }
 
-    public string Get()
+    public string GetCurrent()
     {
         return Tenant.Value ?? string.Empty;
     }

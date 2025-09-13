@@ -102,7 +102,6 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     Group = group,
                     GroupEnsureOrderliness = groupEnsureOrderliness,
                     TaskDescribe = describe ?? "无描述",
-                    MessageGroup = 0,
                     MessageTime = DateTime.Now,
                     Retries = 1,
                     MessageContent = content,
