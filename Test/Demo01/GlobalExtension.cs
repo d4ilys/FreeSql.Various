@@ -6,11 +6,25 @@ namespace Demo01
 {
     public static class GlobalExtension
     {
+        /// <summary>
+        /// 添加本地消息表事务
+        /// </summary>
+        /// <param name="freeSqlUnitOfWork"></param>
+        /// <param name="taskKey"></param>
+        /// <param name="content"></param>
+        /// <param name="group"></param>
+        /// <param name="activeDo"></param>
+        /// <returns></returns>
         public static LocalMessageTableTransactionUnitOfWorker InjectLocalMessageTableEx(
-            this IUnitOfWork freeSqlUnitOfWork, string taskKey, string content, bool activeDo)
+            this IUnitOfWork freeSqlUnitOfWork, string taskKey, string content, string group = "", bool activeDo = true)
         {
             var various = FreeSqlVariousInstance.Various;
-            return freeSqlUnitOfWork.InjectLocalMessageTable(various, taskKey, content, activeDo);
+            if (!string.IsNullOrWhiteSpace(group))
+            {
+                activeDo = false;
+            }
+
+            return freeSqlUnitOfWork.InjectLocalMessageTable(various, taskKey, content, activeDo, group);
         }
     }
 }

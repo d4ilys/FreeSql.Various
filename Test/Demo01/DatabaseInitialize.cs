@@ -26,7 +26,7 @@ namespace Demo01
 
             settingDb.UseJsonMap();
 
-            // await DatabaseSettingsInitialize(settingDb);
+        //    await DatabaseSettingsInitialize(settingDb);
 
             var tenants = await settingDb.Select<TenantManager>().ToListAsync();
 
@@ -67,7 +67,7 @@ namespace Demo01
                 }
             }
 
-            // await DatabaseBusinessInitialize();
+           // await DatabaseBusinessInitialize();
         }
 
 
@@ -107,7 +107,7 @@ namespace Demo01
                             new FreeSqlBuilder()
                                 .UseConnectionString(connection.DataType, connection.ConnectionString)
                                 .UseMonitorCommand(cmd =>
-                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd.CommandText}"))
+                                    VariousConsole.Info<Program>($"{connection.DatabaseName} - {cmd.CommandText}"))
                                 .Build()
                     });
                 }
@@ -151,7 +151,7 @@ namespace Demo01
                             new FreeSqlBuilder()
                                 .UseConnectionString(connection.DataType, connection.ConnectionString)
                                 .UseMonitorCommand(cmd =>
-                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd.CommandText}"))
+                                    VariousConsole.Info<Program>($"{connection.DatabaseName} - {cmd.CommandText}"))
                                 .Build()
                     });
                 }
@@ -185,7 +185,7 @@ namespace Demo01
                             new FreeSqlBuilder()
                                 .UseConnectionString(connection.DataType, connection.ConnectionString)
                                 .UseMonitorCommand(cmd =>
-                                    VariousConsole.Info<Program>($"{connection.DatabaseName}:{cmd.CommandText}"))
+                                    VariousConsole.Info<Program>($"{connection.DatabaseName} - {cmd.CommandText}"))
                                 .Build()
                     });
                 }

@@ -14,7 +14,7 @@ namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
 
         internal static bool IsLogger()
         {
-            return Context.Value!.IsLogger;
+            return Context.Value != null && Context.Value!.IsLogger;
         }
 
         internal static void SetLogger(string log)

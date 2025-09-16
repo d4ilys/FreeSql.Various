@@ -23,7 +23,10 @@ namespace FreeSql.Various.Utilitys
         /// <summary>
         ///  同步本地消息表
         /// </summary>
-        internal static readonly ConcurrentDictionary<int, Lazy<bool>> LazySyncLocalMessageTable = new();
+        internal static readonly ConcurrentDictionary<Guid, Lazy<bool>> LazySyncLocalMessageTable = new();
+
+
+        internal static readonly ConcurrentDictionary<int, bool> IsSyncLocalMessageTable = new();
 
         /// <summary>
         /// 本地消息表任务描述
@@ -39,7 +42,7 @@ namespace FreeSql.Various.Utilitys
         /// <summary>
         /// 本地消息表事务任务调度数据库
         /// </summary>
-        internal static readonly HashSet<IFreeSql> LocalMessageTableTransactionSchedulerDbs = new();
+        internal static readonly HashSet<string> LocalMessageTableTransactionSchedulerKeys = new();
 
 
         internal static List<Timer> SchedulerTimers = new();

@@ -2,7 +2,7 @@
 
 namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 {
-    [Table(Name = "various_local_message_group_table")]
+    [Table(Name = "various_local_message_group")]
     [Index("group_index", "group")]
     internal class LocalMessageGroupDatabaseTable : LocalMessageDatabaseTable
     {

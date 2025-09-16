@@ -40,7 +40,7 @@ namespace FreeSql.Various.Utilitys
                 if (sender is IUnitOfWork uow &&
                     uow.States.TryGetValue("LocalMessageTableTransaction", out object? state))
                 {
-                    if (args.Operation == "提交")
+                    if (args.Remark == "提交")
                     {
                         if (state is LocalMessageTableTransactionUnitOfWorker worker)
                         {

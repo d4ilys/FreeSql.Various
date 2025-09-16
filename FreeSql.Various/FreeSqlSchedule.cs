@@ -5,7 +5,7 @@ namespace FreeSql.Various;
 
 public class FreeSqlSchedule
 {
-    private readonly IdleBus<string, IFreeSql> _idleBus = new();
+    private readonly IdleBus<string, IFreeSql> _idleBus = new(TimeSpan.FromMinutes(10));
 
     public IFreeSql Get(string key)
     {

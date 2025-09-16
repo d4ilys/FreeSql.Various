@@ -13,10 +13,11 @@ class Program
     {
         Various.TenantContext.Set("taobao");
         await DatabaseInitialize.InitializeAsync();
+        LocalMessageTableTransactionTest();
         while (true)
         {
             Console.ReadKey();
-            await TestParallelCrossDatabaseTransactionAsync();
+            await LocalMessageTableTransactionNormalTestAsync();
         }
     }
 
@@ -77,54 +78,110 @@ class Program
     }
 
 
-    static async Task LocalMessageTableTransactionTestAsync()
+    #region 本地消息表事务测试
+
+    static void LocalMessageTableTransactionTest()
     {
         var localMessageTableTransaction = Various.Transactions.LocalMessageTableTransaction;
 
+        var productDbs = Various.SharingPatterns.Hash.UseAll(DbEnum.Product);
+
+        var orderDbs = Various.SharingPatterns.TimeRange.UseAll(DbEnum.Order);
+
+        var dispatchDbs = productDbs.ToList();
+
+        dispatchDbs.AddRange(orderDbs);
+
         //注册需要调度的数据库
-        localMessageTableTransaction.RegisterDispatchDatabase(Various.Use(DbEnum.Basics));
+        localMessageTableTransaction.RegisterDispatchDatabase(dispatchDbs.ToArray());
 
         //注册任务
-        localMessageTableTransaction.RegisterTaskExecutor("UserLoginCodeMessage", "用户注册完成后发送短信.", async content =>
+        localMessageTableTransaction.RegisterTaskExecutor("ShippingNoticeERP", "通知ERP系统",
+            content =>
+            {
+                var random = new Random().Next(0, 5);
+                if (random == 3)
+                {
+                    throw new Exception($"当前随机数为{random},测试引发异常");
+                }
+
+                return Task.FromResult(random == 1);
+            });
+
+        //注册任务
+        localMessageTableTransaction.RegisterTaskExecutor("ShippingNoticeWareHouse", "通知仓库系统",
+            content =>
+            {
+                var random = new Random().Next(0, 5);
+                if (random == 3)
+                {
+                    throw new Exception($"当前随机数为{random},测试引发异常");
+                }
+
+                return Task.FromResult(random == 1);
+            });
+
+        localMessageTableTransaction.RegisterTaskExecutor("OrderDelivery", "订单发货通知用户", content =>
         {
-            var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync("http://baidu.com");
-            var isSuccessStatusCode = response.IsSuccessStatusCode;
-            return isSuccessStatusCode;
+            var random = new Random().Next(0, 5);
+            if (random == 3)
+            {
+                throw new Exception($"当前随机数为{random},测试引发异常");
+            }
+
+            return Task.FromResult(random == 1);
         });
 
         localMessageTableTransaction.ConfigDispatch(config =>
         {
-            config.MainSchedule.Period = TimeSpan.FromMinutes(2);
+            config.MainSchedule.Period = TimeSpan.FromMinutes(1);
             config.MainSchedule.DueTime = TimeSpan.FromSeconds(1);
             config.MainSchedule.MaxRetries = 20;
 
             //自定义任务组
-            config.GroupSchedules.Add("OrderConsume", new LocalMessageTableGroupDispatchSchedule
+            config.GroupSchedules.Add("OrderNotice", new LocalMessageTableGroupDispatchSchedule
             {
                 GroupEnsureOrderliness = true,
                 Schedule = new LocalMessageTableDispatchSchedule
                 {
-                    Period = TimeSpan.FromSeconds(20),
+                    Period = TimeSpan.FromSeconds(10),
                     DueTime = TimeSpan.FromSeconds(1),
-                    MaxRetries = 10
+                    MaxRetries = 100
                 }
             });
         });
 
+        localMessageTableTransaction.SyncAllDatabaseLocalMessageTable();
+
         //启动调度器
         localMessageTableTransaction.DispatchRunning();
+    }
 
-        using var repositoryUnitOfWork = Various.Use(DbEnum.Basics).CreateUnitOfWork();
+    static async Task LocalMessageTableTransactionNormalTestAsync()
+    {
+        using var repositoryUnitOfWork =
+            Various.SharingPatterns.TimeRange.Use(DbEnum.Order, DateTime.Today).CreateUnitOfWork();
 
-        repositoryUnitOfWork.InjectLocalMessageTableEx("UserLoginCodeMessage", "342342", true);
 
         var orm = repositoryUnitOfWork.Orm;
 
-        await orm.Delete<object>().Where(s => true).ExecuteAffrowsAsync();
+        await orm.Update<Order>()
+            .Set(o => o.Status == "已发货")
+            .Where(s => s.Id == 4).ExecuteAffrowsAsync();
+
+        repositoryUnitOfWork.InjectLocalMessageTableEx("OrderDelivery", "您的订单「4」已经发货",
+            group: "OrderNotice");
+
+        repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeERP", "ERP订单「4」已经发货",
+            group: "OrderNotice");
+
+        repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeWareHouse", "WareHouse订单「4」已经发货",
+            group: "OrderNotice");
 
         repositoryUnitOfWork.Commit();
     }
+
+    #endregion
 
 
     #region Test Parallel
@@ -167,7 +224,7 @@ class Program
                 {
                     throw new Exception("订单不存在");
                 }
-               
+
 
                 achieve.Commit();
             }

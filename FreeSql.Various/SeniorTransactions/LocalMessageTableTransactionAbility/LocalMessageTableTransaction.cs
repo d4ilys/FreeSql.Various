@@ -36,7 +36,7 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
         //启动分组调度
         foreach (var localMessageTableGroupDispatchSchedule in _dispatchConfig.GroupSchedules)
         {
-           var currentSchedule = localMessageTableGroupDispatchSchedule;
+            var currentSchedule = localMessageTableGroupDispatchSchedule;
 
             var groupSchedulerTimer = new Timer(o =>
                 {
@@ -53,6 +53,26 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
                 currentSchedule.Value.Schedule.Period);
             VariousMemoryCache.SchedulerTimers.Add(groupSchedulerTimer);
         }
+
+        //只保留三天的日志
+        ClearLog();
+    }
+
+    public void SyncAllDatabaseLocalMessageTable()
+    {
+        foreach (var key in VariousMemoryCache.LocalMessageTableTransactionSchedulerKeys)
+        {
+            var db = schedule.Get(key);
+            SyncDatabaseLocalMessageTable(db);
+        }
+    }
+
+    public void SyncDatabaseLocalMessageTable(IFreeSql db)
+    {
+        db.CodeFirst.SyncStructure<LocalMessageDatabaseTableLogger>();
+        db.CodeFirst.SyncStructure<LocalMessageGroupDatabaseTable>();
+        db.CodeFirst.SyncStructure<LocalMessageDatabaseTable>();
+        VariousMemoryCache.IsSyncLocalMessageTable.TryAdd(db.Ado.ConnectionString.GetHashCode(), true);
     }
 
     /// <summary>
@@ -60,7 +80,20 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
     /// </summary>
     public void RegisterDispatchDatabase(params IFreeSql[] dbs)
     {
-        VariousMemoryCache.LocalMessageTableTransactionSchedulerDbs.UnionWith(dbs);
+        foreach (var freeSql in dbs)
+        {
+            var keys = schedule.GetIdleBus().GetKeys(fsql =>
+            {
+                if (fsql == null)
+                {
+                    return false;
+                }
+
+                return fsql == freeSql;
+            });
+
+            VariousMemoryCache.LocalMessageTableTransactionSchedulerKeys.UnionWith(keys);
+        }
     }
 
     public void ConfigDispatch(Action<LocalMessageTableDispatchConfig> configAction)
@@ -93,10 +126,11 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
 
     private async Task MainDispatchAction()
     {
-        foreach (var db in VariousMemoryCache.LocalMessageTableTransactionSchedulerDbs)
+        foreach (var key in VariousMemoryCache.LocalMessageTableTransactionSchedulerKeys)
         {
             try
             {
+                var db = schedule.Get(key);
                 //获取小于当前一分钟内的消息，防止添加成功后立即执行
                 var messageStartTime = DateTime.Now.AddSeconds(-20);
 
@@ -104,11 +138,12 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
 
                 var finalConsistencyMessages = await db.Select<LocalMessageDatabaseTable>()
                     .Where(m => m.MessageTime < messageStartTime)
+                    .OrderBy(m => m.MessageTime)
                     .ToListAsync();
 
                 foreach (var localMessageDatabaseTable in finalConsistencyMessages)
                 {
-                    NormalGroupLogic(localMessageDatabaseTable, db);
+                    _ = NormalGroupLogicAsync(localMessageDatabaseTable, string.Empty, db);
                 }
             }
             catch (Exception e)
@@ -120,10 +155,11 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
 
     private async Task GroupDispatchAction(string group)
     {
-        foreach (var db in VariousMemoryCache.LocalMessageTableTransactionSchedulerDbs)
+        foreach (var key in VariousMemoryCache.LocalMessageTableTransactionSchedulerKeys)
         {
             try
             {
+                var db = schedule.Get(key);
                 //获取小于当前一分钟内的消息，防止添加成功后立即执行
                 var messageStartTime = DateTime.Now.AddSeconds(-20);
 
@@ -133,6 +169,7 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
                 var finalConsistencyMessages = await db.Select<LocalMessageGroupDatabaseTable>()
                     .Where(m => m.MessageTime < messageStartTime)
                     .Where(m => m.Group == group)
+                    .OrderBy(m => m.MessageTime)
                     .ToListAsync();
 
                 _dispatchConfig!.GroupSchedules.TryGetValue(group, out var groupDispatchSchedule);
@@ -142,7 +179,7 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
                     foreach (var message in finalConsistencyMessages)
                     {
                         //如果该组的ensureOrderliness为true，则需要确保该组内的消息顺序
-                        var res = await GroupEnsureOrderlinessLogicAsync(message, db,
+                        var res = await GroupEnsureOrderlinessLogicAsync(message, group, db,
                             groupDispatchSchedule.Schedule.MaxRetries);
                         if (!res) break;
                     }
@@ -151,7 +188,7 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
                 {
                     foreach (var message in finalConsistencyMessages)
                     {
-                        NormalGroupLogic(message, db);
+                        await NormalGroupLogicAsync(message, group, db);
                     }
                 }
             }
@@ -165,14 +202,20 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
     private bool LazySyncLocalMessageTable(IFreeSql db)
     {
         //执行的时候同步一次本地消息表
+
         var syncResult = VariousMemoryCache.LazySyncLocalMessageTable.GetOrAdd(
-            db.Ado.ConnectionString.GetHashCode(),
+            db.Ado.Identifier,
             new Lazy<bool>(() =>
             {
+                if (VariousMemoryCache.IsSyncLocalMessageTable.TryGetValue(db.Ado.ConnectionString.GetHashCode(),
+                        out bool value) && value)
+                {
+                    return true;
+                }
+
                 try
                 {
-                    db.CodeFirst.SyncStructure<LocalMessageGroupDatabaseTable>();
-                    db.CodeFirst.SyncStructure<LocalMessageDatabaseTable>();
+                    SyncDatabaseLocalMessageTable(db);
                 }
                 catch (Exception e)
                 {
@@ -187,16 +230,35 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
     }
 
     private async Task<bool> GroupEnsureOrderlinessLogicAsync(LocalMessageDatabaseTable messageGroupDatabaseTable,
+        string group,
         IFreeSql db, int maxRetries)
     {
         try
         {
-            if (messageGroupDatabaseTable.Retries < maxRetries)
+            if (messageGroupDatabaseTable.Retries <= maxRetries)
             {
                 var achieve = new LocalMessageTableTransactionUnitOfWorker(
                     VariousMemoryCache.LocalMessageTableTransactionTasks, schedule, _dispatchConfig!);
-                var res = await achieve.ScheduleDoAsync(messageGroupDatabaseTable.TaskKey,
-                    messageGroupDatabaseTable.MessageContent, db);
+                var res = await achieve.ScheduleDoAsync(messageGroupDatabaseTable.Id, messageGroupDatabaseTable.TaskKey,
+                    messageGroupDatabaseTable.MessageContent, group, db);
+
+                if (!res)
+                {
+                    if (string.IsNullOrEmpty(group))
+                    {
+                        await db.Update<LocalMessageDatabaseTable>().Set(t => t.Retries + 1)
+                            .Where(l => l.Id == messageGroupDatabaseTable.Id).ExecuteAffrowsAsync();
+                    }
+                    else
+                    {
+                        await db.Update<LocalMessageGroupDatabaseTable>().Set(t => t.Retries + 1)
+                            .Where(l => l.Id == messageGroupDatabaseTable.Id).ExecuteAffrowsAsync();
+                    }
+                }
+
+                await db.Update<LocalMessageDatabaseTableLogger>().Set(t => t.ExecutionCount + 1)
+                    .Where(l => l.Id == messageGroupDatabaseTable.Id).ExecuteAffrowsAsync();
+
                 return res;
             }
             else
@@ -205,7 +267,7 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
                 if (DateTime.Now - messageGroupDatabaseTable.MessageTime > TimeSpan.FromMinutes(30))
                 {
                     _dispatchConfig!.ErrorMessageNotice?.Invoke(
-                        $"【本地消息表事务】「{messageGroupDatabaseTable.TaskKey}」执行超过最大次数20次.");
+                        $"【本地消息表事务】「{messageGroupDatabaseTable.TaskKey}」执行超过最大次数{maxRetries}次.");
                 }
             }
         }
@@ -219,17 +281,34 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
         return false;
     }
 
-    private void NormalGroupLogic(LocalMessageDatabaseTable messageGroupDatabaseTable, IFreeSql db)
+    private async Task NormalGroupLogicAsync(LocalMessageDatabaseTable messageGroupDatabaseTable, string group,
+        IFreeSql db)
     {
         try
         {
-            if (messageGroupDatabaseTable.Retries < _dispatchConfig!.MainSchedule.MaxRetries)
+            if (messageGroupDatabaseTable.Retries <= _dispatchConfig!.MainSchedule.MaxRetries)
             {
                 var achieve =
                     new LocalMessageTableTransactionUnitOfWorker(VariousMemoryCache.LocalMessageTableTransactionTasks,
                         schedule, _dispatchConfig!);
-                _ = achieve.ScheduleDoAsync(messageGroupDatabaseTable.TaskKey, messageGroupDatabaseTable.MessageContent,
+
+                _ = achieve.ScheduleDoAsync(messageGroupDatabaseTable.Id, messageGroupDatabaseTable.TaskKey,
+                    messageGroupDatabaseTable.MessageContent, group,
                     db);
+
+                if (string.IsNullOrEmpty(group))
+                {
+                    await db.Update<LocalMessageDatabaseTable>().Set(t => t.Retries + 1)
+                        .Where(l => l.Id == messageGroupDatabaseTable.Id).ExecuteAffrowsAsync();
+                }
+                else
+                {
+                    await db.Update<LocalMessageGroupDatabaseTable>().Set(t => t.Retries + 1)
+                        .Where(l => l.Id == messageGroupDatabaseTable.Id).ExecuteAffrowsAsync();
+                }
+
+                await db.Update<LocalMessageDatabaseTableLogger>().Set(t => t.ExecutionCount + 1)
+                    .Where(l => l.Id == messageGroupDatabaseTable.Id).ExecuteAffrowsAsync();
             }
             else
             {
@@ -245,5 +324,28 @@ public class LocalMessageTableTransaction<TDbKey>(FreeSqlSchedule schedule)
         {
             VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>($"【本地消息表事务】NormalGroupLogic调度任务异常：{e.Message}");
         }
+    }
+
+    private void ClearLog()
+    {
+        var clearLogTimer = new Timer(o =>
+        {
+            foreach (var key in VariousMemoryCache.LocalMessageTableTransactionSchedulerKeys)
+            {
+                try
+                {
+                    var db = schedule.Get(key);
+                    db.Delete<LocalMessageDatabaseTableLogger>()
+                        .Where(m => m.MessageTime < DateTime.Now.AddDays(-3))
+                        .ExecuteAffrows();
+                }
+                catch (Exception e)
+                {
+                    VariousConsole.Error<LocalMessageTableTransaction<TDbKey>>($"【本地消息表事务】清除日志异常：{e.Message}");
+                }
+            }
+        }, null, TimeSpan.FromHours(20), TimeSpan.FromHours(20));
+
+        VariousMemoryCache.SchedulerTimers.Add(clearLogTimer);
     }
 }

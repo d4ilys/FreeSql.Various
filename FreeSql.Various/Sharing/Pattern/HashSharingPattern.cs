@@ -68,7 +68,6 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
         };
     }
 
-
     public IEnumerable<IFreeSql> UseAll(TDbKey dbKey)
     {
         var tryGetValue = Cache.TryGetValue(dbKey, out var configure);
