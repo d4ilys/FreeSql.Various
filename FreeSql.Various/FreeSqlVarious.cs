@@ -32,7 +32,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     public IFreeSql Use(TDbKey dbKey)
     {
         var name = dbKey.ToString();
-        if (name != null) return _schedule.Get(name);
+        if (name != null) return _schedule.Get(name).FreeSql;
         throw new Exception($"该数据库[{dbKey}]未注册.");
     }
 
@@ -43,7 +43,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     /// <exception cref="Exception"></exception>
     public IFreeSql Use(string database)
     {
-        if (!string.IsNullOrWhiteSpace(database)) return _schedule.Get(database);
+        if (!string.IsNullOrWhiteSpace(database)) return _schedule.Get(database).FreeSql;
         throw new Exception($"该数据库[{database}]未注册.");
     }
 
@@ -51,12 +51,16 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     {
         var name = dbKey.ToString();
         if (name != null)
+        {
+            var ela = _schedule.Get(name);
             return new FreeSqlElaborate<TDbKey>
             {
                 DbKey = dbKey,
-                Database = name,
-                FreeSql = _schedule.Get(name)
+                Database = ela.Database,
+                FreeSql = ela.FreeSql
             };
+        }
+
         throw new Exception($"该数据库[{dbKey}]未注册.");
     }
 
@@ -67,7 +71,11 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
             _schedule.Register(name, () =>
             {
                 var freeSql = FreeSqlRegisterShim.Create(create);
-                return freeSql;
+                return new FreeSqlElaborate
+                {
+                    FreeSql = freeSql,
+                    Database = name
+                };
             });
     }
 

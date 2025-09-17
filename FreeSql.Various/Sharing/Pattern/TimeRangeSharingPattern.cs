@@ -26,9 +26,9 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
     {
         var dbName = GenerateDatabaseName(dbKey, inputName);
 
-        var freeSql = schedule.Get(dbName);
+        var elaborate = schedule.Get(dbName);
 
-        return freeSql;
+        return elaborate.FreeSql;
     }
 
     /// <summary>
@@ -41,12 +41,12 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
     {
         var dbName = GenerateDatabaseName(dbKey, inputName);
 
-        var freeSql = schedule.Get(dbName);
+        var elaborate = schedule.Get(dbName);
 
         return new FreeSqlElaborate<TDbKey>
         {
             DbKey = dbKey,
-            FreeSql = freeSql,
+            FreeSql = elaborate.FreeSql,
             Database = dbName
         };
     }
@@ -64,8 +64,8 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
 
         foreach (var dbName in dbNames)
         {
-            var freeSql = schedule.Get(dbName);
-            yield return freeSql;
+            var elaborate = schedule.Get(dbName);
+            yield return elaborate.FreeSql;
         }
     }
 
@@ -83,15 +83,17 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
 
         foreach (var dbName in dbNames)
         {
-            var freeSql = schedule.Get(dbName);
+            var elaborate = schedule.Get(dbName);
             yield return new FreeSqlElaborate<TDbKey>
             {
                 DbKey = dbKey,
-                FreeSql = freeSql,
+                FreeSql = elaborate.FreeSql,
                 Database = dbName
             };
         }
     }
+
+    public IEnumerable<IFreeSql> UseAll(TDbKey dbKey) => UseElaborateAll(dbKey).Select(elaborate => elaborate.FreeSql);
 
     /// <summary>
     /// 获取所有数据库
@@ -99,7 +101,7 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
     /// <param name="dbKey"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public IEnumerable<IFreeSql> UseAll(TDbKey dbKey)
+    public IEnumerable<FreeSqlElaborate<TDbKey>> UseElaborateAll(TDbKey dbKey)
     {
         var tryGetValue = Cache.TryGetValue(dbKey, out var configure);
 
@@ -108,13 +110,19 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
             throw new Exception($"未找到该数据库注册配置信息");
         }
 
-        var dbs = configure!.FreeSqlRegisterItems.Select(item => item.Database);
+        var keys = configure!.FreeSqlRegisterItems.Select(item => item.Database);
 
-        foreach (string db in dbs)
+        foreach (string key in keys)
         {
-            if (schedule.IsRegistered(db))
+            if (schedule.IsRegistered(key))
             {
-                yield return schedule.Get(db);
+                var elaborate = schedule.Get(key);
+                yield return new FreeSqlElaborate<TDbKey>
+                {
+                    DbKey = dbKey,
+                    FreeSql = elaborate.FreeSql,
+                    Database = key
+                };
             }
         }
     }
@@ -132,7 +140,11 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
             schedule.Register(item.Database, () =>
             {
                 var freeSql = FreeSqlRegisterShim.Create(item.BuildIFreeSqlDelegate);
-                return freeSql;
+                return new FreeSqlElaborate
+                {
+                    FreeSql = freeSql,
+                    Database = item.Database
+                };
             });
         }
     }
@@ -164,8 +176,8 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
         if (dbNames.Count == 1)
         {
             // 单库查询
-            var freeSql = schedule.Get(dbNames.First());
-            operationOutcomes = await noCrossDatabaseOperation(freeSql);
+            var elaborate = schedule.Get(dbNames.First());
+            operationOutcomes = await noCrossDatabaseOperation(elaborate.FreeSql);
         }
         else
         {
@@ -199,8 +211,8 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
 
                 try
                 {
-                    var freeSql = schedule.Get(name);
-                    await operation(freeSql);
+                    var elaborate = schedule.Get(name);
+                    await operation(elaborate.FreeSql);
                     operationResult.Success = true;
                 }
                 catch (Exception e)
@@ -247,8 +259,8 @@ public class TimeRangeSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTe
         {
             try
             {
-                var freeSql = schedule.Get(name);
-                return await operation(freeSql);
+                var elaborate = schedule.Get(name);
+                return await operation(elaborate.FreeSql);
             }
             catch (Exception e)
             {

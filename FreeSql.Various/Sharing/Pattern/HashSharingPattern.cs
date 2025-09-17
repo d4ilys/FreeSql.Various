@@ -29,6 +29,14 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
         return refer.FreeSql;
     }
 
+    /// <summary>
+    /// 获取包装对象
+    /// </summary>
+    /// <param name="dbKey"></param>
+    /// <param name="partitionKey"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentException"></exception>
     public FreeSqlElaborate<TDbKey> UseElaborate(TDbKey dbKey, string partitionKey)
     {
         var tryGetValue = Cache.TryGetValue(dbKey, out var configure);
@@ -51,24 +59,29 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
 
         var locationShard = GetSlice(partitionKey, tenantConfigure);
 
-        var dbName = DatabaseNameTemplateReplacer.ReplaceTemplate(configure!.DatabaseNamingTemplate,
+        var key = DatabaseNameTemplateReplacer.ReplaceTemplate(configure!.DatabaseNamingTemplate,
             new Dictionary<string, string>
             {
                 { "tenant", currTenant },
                 { "slice", locationShard.ToString() }
             });
 
-        var freeSql = schedule.Get(dbName);
+        var elaborate = schedule.Get(key);
 
         return new FreeSqlElaborate<TDbKey>
         {
             DbKey = dbKey,
-            Database = dbName,
-            FreeSql = freeSql
+            Database = key,
+            FreeSql = elaborate.FreeSql
         };
     }
 
-    public IEnumerable<IFreeSql> UseAll(TDbKey dbKey)
+    /// <summary>
+    /// 获取所有分库包装对象
+    /// </summary>
+    /// <param name="dbKey"></param>
+    /// <returns></returns>
+    public IEnumerable<FreeSqlElaborate<TDbKey>> UseElaborateAll(TDbKey dbKey)
     {
         var tryGetValue = Cache.TryGetValue(dbKey, out var configure);
 
@@ -77,16 +90,29 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
             throw new Exception($"未找到该数据库注册配置信息");
         }
 
-        var dbs = configure!.FreeSqlRegisterItems.Select(item => item.Database);
+        var keys = configure!.FreeSqlRegisterItems.Select(item => item.Database);
 
-        foreach (string db in dbs)
+        foreach (string key in keys)
         {
-            if (schedule.IsRegistered(db))
+            if (!schedule.IsRegistered(key)) continue;
+
+            var ela = schedule.Get(key);
+
+            yield return new FreeSqlElaborate<TDbKey>
             {
-                yield return schedule.Get(db);
-            }
+                FreeSql = ela.FreeSql,
+                Database = ela.Database,
+                DbKey = dbKey
+            };
         }
     }
+
+    /// <summary>
+    /// 获取所有分库
+    /// </summary>
+    /// <param name="dbKey"></param>
+    /// <returns></returns>
+    public IEnumerable<IFreeSql> UseAll(TDbKey dbKey) => UseElaborateAll(dbKey).Select(elaborate => elaborate.FreeSql);
 
     /// <summary>
     /// 注册数据库分片
@@ -101,7 +127,11 @@ public class HashSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenantC
             schedule.Register(item.Database, () =>
             {
                 var freeSql = FreeSqlRegisterShim.Create(item.BuildIFreeSqlDelegate);
-                return freeSql;
+                return new FreeSqlElaborate
+                {
+                    FreeSql = freeSql,
+                    Database = item.Database
+                };
             });
         }
     }

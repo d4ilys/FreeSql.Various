@@ -5,24 +5,19 @@ namespace FreeSql.Various;
 
 public class FreeSqlSchedule
 {
-    private readonly IdleBus<string, IFreeSql> _idleBus = new(TimeSpan.FromMinutes(10));
+    private readonly IdleBus<string, FreeSqlElaborate> _idleBus = new(TimeSpan.FromMinutes(5));
 
-    public IFreeSql Get(string key)
+    public FreeSqlElaborate Get(string key)
     {
-        if (!_idleBus.Exists(key))
-        {
-            throw new Exception($"该数据库[{key}]未注册.");
-        }
-
-        return _idleBus.Get(key);
+        return !_idleBus.Exists(key) ? throw new Exception($"该数据库[{key}]未注册.") : _idleBus.Get(key);
     }
 
-    public IdleBus<string, IFreeSql> GetIdleBus()
+    public IdleBus<string, FreeSqlElaborate> GetIdleBus()
     {
         return _idleBus;
     }
 
-    public bool Register(string key, Func<IFreeSql> func)
+    public bool Register(string key, Func<FreeSqlElaborate> func)
     {
         return _idleBus.TryRegister(key, func);
     }

@@ -14,9 +14,9 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         public LocalMessageTableDispatchSchedule MainSchedule { get; set; } = new();
 
         /// <summary>
-        /// 本地消息分组表调度
+        /// 创建自定义隔离调度
         /// </summary>
-        public Dictionary<string, LocalMessageTableGroupDispatchSchedule> GroupSchedules { get; set; } =
+        public Dictionary<string, LocalMessageTableGoverningDispatchSchedule> GoverningSchedules { get; set; } =
             new();
 
         /// <summary>
@@ -48,13 +48,16 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         public int MaxRetries { get; set; } = 20;
     }
 
-    public class LocalMessageTableGroupDispatchSchedule
+    public class LocalMessageTableGoverningDispatchSchedule
     {
         /// <summary>
         /// 组中的任务是否强制保证顺序「如果其中一个任务失败回阻塞其后的所有任务」
         /// </summary>
-        public bool GroupEnsureOrderliness { get; set; } = false;
+        public Dictionary<string, bool> GroupEnsureOrderliness { get; set; } = new Dictionary<string, bool>();
 
+        /// <summary>
+        /// 调度器
+        /// </summary>
         public LocalMessageTableDispatchSchedule Schedule { get; set; } = new LocalMessageTableDispatchSchedule();
     }
 }

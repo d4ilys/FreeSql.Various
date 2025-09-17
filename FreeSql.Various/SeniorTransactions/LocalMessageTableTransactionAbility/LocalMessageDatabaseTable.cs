@@ -99,5 +99,11 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         /// </summary>
         [Column(Name = "group_ensure_orderliness")]
         public bool GroupEnsureOrderliness { get; set; }
+
+        /// <summary>
+        /// 所属调度者
+        /// </summary>
+        [Column(Name = "governing", StringLength = 100)]
+        public string Governing { get; set; }
     }
 }

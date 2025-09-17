@@ -7,7 +7,7 @@ namespace FreeSql.Various
     {
         public static LocalMessageTableTransactionUnitOfWorker InjectLocalMessageTable<TDbKey>(
             this IUnitOfWork freeSqlUnitOfWork, FreeSqlVarious<TDbKey> various, string taskKey,
-            string content, bool activeDo, string group = "")
+            string content, bool activeDo, string governing = "", string group = "")
             where TDbKey : notnull
         {
             var localMessageTableTransactionUnitOfWorker =
@@ -15,12 +15,34 @@ namespace FreeSql.Various
 
             //事务Fsql对象
             var tranFreeSql = freeSqlUnitOfWork.Orm;
-            localMessageTableTransactionUnitOfWorker.Reliable(tranFreeSql, taskKey, content, group);
+            localMessageTableTransactionUnitOfWorker.Reliable(tranFreeSql, taskKey, content, governing, group);
 
             //如果主动触发执行 则携带到UnitOfWorker通过Aop执行
-            if (activeDo)
-                freeSqlUnitOfWork.States["LocalMessageTableTransaction"] = localMessageTableTransactionUnitOfWorker;
+            if (!activeDo)
+            {
+                return localMessageTableTransactionUnitOfWorker;
+            }
 
+            const string stateKey = "FreeSqlUnitOfWorkStatesCarrier";
+
+            //主动触发执行逻辑
+            if (!freeSqlUnitOfWork.States.ContainsKey(stateKey))
+            {
+                freeSqlUnitOfWork.States[stateKey] =
+                    new List<FreeSqlUnitOfWorkStatesCarrier>();
+            }
+
+            if (freeSqlUnitOfWork.States[stateKey] is List<FreeSqlUnitOfWorkStatesCarrier>
+                list)
+            {
+                list.Add(
+                    new FreeSqlUnitOfWorkStatesCarrier
+                    {
+                        Group = group,
+                        Governing = governing,
+                        UnitOfWorker = localMessageTableTransactionUnitOfWorker
+                    });
+            }
 
             return localMessageTableTransactionUnitOfWorker;
         }

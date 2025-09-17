@@ -21,7 +21,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
         private string _taskKey = string.Empty;
 
-        private string _group = string.Empty;
+        private string _governing = string.Empty;
 
         /// <summary>
         /// 借助事务持久化本地消息表
@@ -29,9 +29,10 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         /// <param name="tranFreeSql">事务对象</param>
         /// <param name="taskKey">任务Key</param>
         /// <param name="content">任务内容</param>
+        /// <param name="governing">任务调度者</param>
         /// <param name="group">任务组</param>
         /// <exception cref="Exception"></exception>
-        public void Reliable(IFreeSql tranFreeSql, string taskKey, string content, string group)
+        public void Reliable(IFreeSql tranFreeSql, string taskKey, string content, string governing, string group)
         {
             // 一个对象 防止绑定多次
             if (Interlocked.Add(ref _reliableCount, 1) > 1)
@@ -47,7 +48,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
             _taskKey = taskKey;
 
-            _group = group;
+            _governing = governing;
 
             VariousMemoryCache.LocalMessageTableTaskDescribe.TryGetValue(taskKey, out var describe);
 
@@ -58,29 +59,30 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     try
                     {
                         var key = schedule.GetIdleBus()
-                            .GetKeys(db =>
+                            .GetKeys(elaborate =>
                             {
-                                if (db == null)
+                                if (elaborate == null)
                                     return false;
 
-                                return db.Ado.Identifier == _fsqlIdentifier &&
-                                       db.Ado.DataType == _fsqlDataType;
+                                return elaborate.FreeSql.Ado.Identifier == _fsqlIdentifier &&
+                                       elaborate.FreeSql.Ado.DataType == _fsqlDataType;
                             })
                             .FirstOrDefault();
 
-                        var db = schedule.Get(key!);
+                        var ela = schedule.Get(key!);
 
                         if (VariousMemoryCache.IsSyncLocalMessageTable.TryGetValue(
-                                db.Ado.ConnectionString.GetHashCode(), out bool value) && value)
+                                ela.FreeSql.Ado.ConnectionString.GetHashCode(), out bool value) && value)
                         {
                             return true;
                         }
                         else
                         {
-                            db.CodeFirst.SyncStructure<LocalMessageDatabaseTableLogger>();
-                            db.CodeFirst.SyncStructure<LocalMessageGroupDatabaseTable>();
-                            db.CodeFirst.SyncStructure<LocalMessageDatabaseTable>();
-                            VariousMemoryCache.IsSyncLocalMessageTable.TryAdd(db.Ado.ConnectionString.GetHashCode(),
+                            ela.FreeSql.CodeFirst.SyncStructure<LocalMessageDatabaseTableLogger>();
+                            ela.FreeSql.CodeFirst.SyncStructure<LocalMessageGoverningDatabaseTable>();
+                            ela.FreeSql.CodeFirst.SyncStructure<LocalMessageDatabaseTable>();
+                            VariousMemoryCache.IsSyncLocalMessageTable.TryAdd(
+                                ela.FreeSql.Ado.ConnectionString.GetHashCode(),
                                 true);
                         }
                     }
@@ -99,7 +101,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
             describe ??= "无描述";
 
-            if (string.IsNullOrEmpty(group))
+            if (string.IsNullOrEmpty(governing))
             {
                 //添加消息表数据
                 tranFreeSql.Insert(new LocalMessageDatabaseTable
@@ -119,22 +121,25 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     TaskDescribe = describe,
                     MessageTime = DateTime.Now,
                     MessageContent = content,
-                    ErrorMessage = null,
-                    Group = "main",
+                    Group = string.Empty,
+                    Governing = "default",
                     GroupEnsureOrderliness = false,
                 }).ExecuteAffrows();
             }
             else
             {
-                var groupIsConfig = config.GroupSchedules.TryGetValue(group, out var groupDispatchSchedule);
+                var groupIsConfig = config.GoverningSchedules.TryGetValue(governing, out var groupDispatchSchedule);
 
-                var groupEnsureOrderliness = groupIsConfig && groupDispatchSchedule is { GroupEnsureOrderliness: true };
+                var groupEnsureOrderliness =
+                    groupIsConfig && groupDispatchSchedule != null &&
+                    groupDispatchSchedule.GroupEnsureOrderliness.Any(g => g.Key == group);
 
                 //添加消息表数据
-                tranFreeSql.Insert(new LocalMessageGroupDatabaseTable
+                tranFreeSql.Insert(new LocalMessageGoverningDatabaseTable
                 {
                     Id = _id,
                     TaskKey = taskKey,
+                    Governing = governing,
                     Group = group,
                     GroupEnsureOrderliness = groupEnsureOrderliness,
                     TaskDescribe = describe,
@@ -150,7 +155,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     TaskDescribe = describe,
                     MessageTime = DateTime.Now,
                     MessageContent = content,
-                    ErrorMessage = null,
+                    Governing = governing,
                     Group = group,
                     GroupEnsureOrderliness = groupEnsureOrderliness,
                 }).ExecuteAffrows();
@@ -165,12 +170,13 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         public async Task<bool> DoAsync()
         {
             var key = schedule.GetIdleBus()
-                .GetKeys(db =>
+                .GetKeys(elaborate =>
                 {
-                    if (db == null)
+                    if (elaborate == null)
                         return false;
 
-                    return db.Ado.Identifier == _fsqlIdentifier && db.Ado.DataType == _fsqlDataType;
+                    return elaborate.FreeSql.Ado.Identifier == _fsqlIdentifier &&
+                           elaborate.FreeSql.Ado.DataType == _fsqlDataType;
                 })
                 .FirstOrDefault();
 
@@ -179,14 +185,15 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                 throw new Exception($"[{_fsqlIdentifier}]未注册.");
             }
 
-            var db = schedule.Get(key);
+            var ela = schedule.Get(key);
 
-            var execResult = await ScheduleDoAsync(_id, _taskKey, _content, _group, db);
+            var execResult = await ScheduleDoAsync(_id, _taskKey, _content, _governing, ela.FreeSql);
 
             return execResult;
         }
 
-        internal async Task<bool> ScheduleDoAsync(string id, string taskKey, string content, string group, IFreeSql db)
+        internal async Task<bool> ScheduleDoAsync(string id, string taskKey, string content, string governing,
+            IFreeSql db)
         {
             var tryGetValue =
                 tasks.TryGetValue(taskKey,
@@ -214,17 +221,17 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
             //补偿则删除本条消息
             if (execResult)
             {
-                if (string.IsNullOrEmpty(group))
+                if (string.IsNullOrEmpty(governing))
                     await db.Delete<LocalMessageDatabaseTable>().Where(f => f.Id == id).ExecuteAffrowsAsync();
                 else
-                    await db.Delete<LocalMessageGroupDatabaseTable>().Where(f => f.Id == id).ExecuteAffrowsAsync();
+                    await db.Delete<LocalMessageGoverningDatabaseTable>().Where(f => f.Id == id).ExecuteAffrowsAsync();
             }
             else
             {
                 //记录失败原因
                 if (exception == null) return execResult;
 
-                if (string.IsNullOrEmpty(group))
+                if (string.IsNullOrEmpty(governing))
                 {
                     await db.Update<LocalMessageDatabaseTable>()
                         .Set(f => f.ErrorMessage, exception.ToString())
@@ -233,7 +240,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                 }
                 else
                 {
-                    await db.Update<LocalMessageGroupDatabaseTable>()
+                    await db.Update<LocalMessageGoverningDatabaseTable>()
                         .Set(f => f.ErrorMessage, exception.ToString())
                         .Where(f => f.Id == id)
                         .ExecuteAffrowsAsync();

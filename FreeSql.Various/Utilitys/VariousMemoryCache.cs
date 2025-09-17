@@ -18,7 +18,8 @@ namespace FreeSql.Various.Utilitys
         /// <summary>
         ///  同步多库事务本地消息表
         /// </summary>
-        internal static readonly ConcurrentDictionary<string, Lazy<bool>> InitializedCrossDatabaseTransactionLocalMessage = new();
+        internal static readonly ConcurrentDictionary<string, Lazy<bool>>
+            InitializedCrossDatabaseTransactionLocalMessage = new();
 
         /// <summary>
         ///  同步本地消息表
@@ -46,5 +47,7 @@ namespace FreeSql.Various.Utilitys
 
 
         internal static List<Timer> SchedulerTimers = new();
+
+        internal static LocalMessageTableDispatchConfig LocalMessageTableDispatchConfig = new();
     }
 }

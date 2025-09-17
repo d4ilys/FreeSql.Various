@@ -38,13 +38,41 @@ namespace FreeSql.Various.Utilitys
             fsql.Aop.TraceAfter += (sender, args) =>
             {
                 if (sender is IUnitOfWork uow &&
-                    uow.States.TryGetValue("LocalMessageTableTransaction", out object? state))
+                    uow.States.TryGetValue("FreeSqlUnitOfWorkStatesCarrier", out object? state))
                 {
                     if (args.Remark == "提交")
                     {
-                        if (state is LocalMessageTableTransactionUnitOfWorker worker)
+                        if (state is List<FreeSqlUnitOfWorkStatesCarrier> carriers)
                         {
-                            _ = worker.DoAsync();
+                            var lookup = carriers.ToLookup(c => new
+                            {
+                                c.Group, c.Governing
+                            });
+                            _ = Parallel.ForEachAsync(lookup, async (grouping, token) =>
+                            {
+                                bool tryGetValue = VariousMemoryCache.LocalMessageTableDispatchConfig.GoverningSchedules
+                                    .TryGetValue(
+                                        grouping.Key.Governing, out var dispatchSchedule);
+
+                                var sequential =
+                                    dispatchSchedule?.GroupEnsureOrderliness.GetValueOrDefault(grouping.Key.Group ) ??
+                                    false;
+                                if (tryGetValue && sequential)
+                                {
+                                    foreach (var c in grouping)
+                                    {
+                                        var res = await c.UnitOfWorker.DoAsync();
+                                        if (!res) break;
+                                    }
+                                }
+                                else
+                                {
+                                    foreach (var c in grouping)
+                                    {
+                                        _ = c.UnitOfWorker.DoAsync();
+                                    }
+                                }
+                            });
                         }
                     }
                 }

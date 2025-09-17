@@ -36,17 +36,19 @@ public class TenantSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenan
                 { "tenant", tenant }
             });
 
-        var freeSql = schedule.Get(dbName);
+        var elaborate = schedule.Get(dbName);
 
         return new FreeSqlElaborate<TDbKey>
         {
             DbKey = dbKey,
-            FreeSql = freeSql,
+            FreeSql = elaborate.FreeSql,
             Database = dbName
         };
     }
 
-    public IEnumerable<IFreeSql> UseAll(TDbKey dbKey)
+    public IEnumerable<IFreeSql> UseAll(TDbKey dbKey) =>  UseElaborateAll(dbKey).Select(elaborate => elaborate.FreeSql);
+
+    public IEnumerable<FreeSqlElaborate<TDbKey>> UseElaborateAll(TDbKey dbKey)
     {
         var tryGetValue = Cache.TryGetValue(dbKey, out var configure);
 
@@ -55,26 +57,36 @@ public class TenantSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenan
             throw new Exception($"未找到该数据库注册配置信息");
         }
 
-        var dbs = configure!.FreeSqlRegisterItems.Select(item => item.Database);
+        var keys = configure!.FreeSqlRegisterItems.Select(item => item.Database);
 
-        foreach (string db in dbs)
+        foreach (string key in keys)
         {
-            if (schedule.IsRegistered(db))
+            if (schedule.IsRegistered(key))
             {
-                yield return schedule.Get(db);
+                var elaborate = schedule.Get(key);
+                yield return new FreeSqlElaborate<TDbKey>
+                {
+                    FreeSql = elaborate.FreeSql,
+                    Database = elaborate.Database,
+                    DbKey = dbKey
+                };
             }
         }
     }
-    
+
     public void Register(TDbKey dbKey, TenantSharingRegisterConfigure registerConfigure)
     {
         Cache.TryAdd(dbKey, registerConfigure);
         foreach (var item in registerConfigure.FreeSqlRegisterItems)
         {
-            schedule.Register(item.Database,() =>
+            schedule.Register(item.Database, () =>
             {
                 var freeSql = FreeSqlRegisterShim.Create(item.BuildIFreeSqlDelegate);
-                return freeSql;
+                return new FreeSqlElaborate
+                {
+                    FreeSql = freeSql,
+                    Database = item.Database
+                };
             });
         }
     }

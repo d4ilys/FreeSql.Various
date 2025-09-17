@@ -84,9 +84,9 @@ class Program
     {
         var localMessageTableTransaction = Various.Transactions.LocalMessageTableTransaction;
 
-        var productDbs = Various.SharingPatterns.Hash.UseAll(DbEnum.Product);
+        var productDbs = Various.SharingPatterns.Hash.UseElaborateAll(DbEnum.Product);
 
-        var orderDbs = Various.SharingPatterns.TimeRange.UseAll(DbEnum.Order);
+        var orderDbs = Various.SharingPatterns.TimeRange.UseElaborateAll(DbEnum.Order);
 
         var dispatchDbs = productDbs.ToList();
 
@@ -99,7 +99,7 @@ class Program
         localMessageTableTransaction.RegisterTaskExecutor("ShippingNoticeERP", "通知ERP系统",
             content =>
             {
-                var random = new Random().Next(0, 5);
+                var random = new Random().Next(0, 3);
                 if (random == 3)
                 {
                     throw new Exception($"当前随机数为{random},测试引发异常");
@@ -112,7 +112,7 @@ class Program
         localMessageTableTransaction.RegisterTaskExecutor("ShippingNoticeWareHouse", "通知仓库系统",
             content =>
             {
-                var random = new Random().Next(0, 5);
+                var random = new Random().Next(0, 3);
                 if (random == 3)
                 {
                     throw new Exception($"当前随机数为{random},测试引发异常");
@@ -123,7 +123,7 @@ class Program
 
         localMessageTableTransaction.RegisterTaskExecutor("OrderDelivery", "订单发货通知用户", content =>
         {
-            var random = new Random().Next(0, 5);
+            var random = new Random().Next(0, 3);
             if (random == 3)
             {
                 throw new Exception($"当前随机数为{random},测试引发异常");
@@ -139,9 +139,13 @@ class Program
             config.MainSchedule.MaxRetries = 20;
 
             //自定义任务组
-            config.GroupSchedules.Add("OrderNotice", new LocalMessageTableGroupDispatchSchedule
+            config.GoverningSchedules.Add("OrderNotice", new LocalMessageTableGoverningDispatchSchedule
             {
-                GroupEnsureOrderliness = true,
+                GroupEnsureOrderliness = new Dictionary<string, bool>()
+                {
+                    ["Business1"] = true,
+                    ["Business2"] = true,
+                },
                 Schedule = new LocalMessageTableDispatchSchedule
                 {
                     Period = TimeSpan.FromSeconds(10),
@@ -159,106 +163,102 @@ class Program
 
     static async Task LocalMessageTableTransactionNormalTestAsync()
     {
-        using var repositoryUnitOfWork =
-            Various.SharingPatterns.TimeRange.Use(DbEnum.Order, DateTime.Today).CreateUnitOfWork();
-
-
-        var orm = repositoryUnitOfWork.Orm;
-
-        await orm.Update<Order>()
-            .Set(o => o.Status == "已发货")
-            .Where(s => s.Id == 4).ExecuteAffrowsAsync();
-
-        repositoryUnitOfWork.InjectLocalMessageTableEx("OrderDelivery", "您的订单「4」已经发货",
-            group: "OrderNotice");
-
-        repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeERP", "ERP订单「4」已经发货",
-            group: "OrderNotice");
-
-        repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeWareHouse", "WareHouse订单「4」已经发货",
-            group: "OrderNotice");
-
-        repositoryUnitOfWork.Commit();
-    }
-
-    #endregion
-
-
-    #region Test Parallel
-
-    static async Task TestParallelCrossDatabaseTransactionAsync()
-    {
-        var transactions = Various.Transactions;
-
-        await Parallel.ForEachAsync(Enumerable.Range(1, 10), async (i, token) =>
         {
-            int currentThreadManagedThreadId = Thread.CurrentThread.ManagedThreadId;
-            var productId = i;
-
-            var order = Various.SharingPatterns.TimeRange.UseElaborate(DbEnum.Order, DateTime.Today);
-
-            // 时间范围分库
-            var product = Various.SharingPatterns.Hash.UseElaborate(DbEnum.Product, productId.ToString());
-
-            // 三个不同数据库的事务组合
-            using var achieve =
-                transactions.CrossDatabaseTransaction.Create("商品扣减,订单创建事务", order, product);
-            try
-            {
-                achieve.Begin();
-
-                var updateProductAffrows = await achieve.Orms.Orm2.Update<Product>().Set(p => p.Price == 22)
-                    .Where(p => p.Id == productId)
-                    .ExecuteAffrowsAsync(token);
-
-                if (updateProductAffrows == 0)
-                {
-                    throw new Exception("商品不存在");
-                }
-
-                var updateOrderAffrows = await achieve.Orms.Orm1.Update<Order>().Set(o => o.Price == 22)
-                    .Where(a => a.ProductId == productId)
-                    .ExecuteAffrowsAsync(token);
-
-                if (updateOrderAffrows == 0)
-                {
-                    throw new Exception("订单不存在");
-                }
+            using var repositoryUnitOfWork =
+                Various.SharingPatterns.TimeRange.Use(DbEnum.Order, DateTime.Today).CreateUnitOfWork();
 
 
-                achieve.Commit();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("商品扣减,订单创建事务 回滚");
-                achieve.Rollback();
-            }
-        });
-    }
+            var orm = repositoryUnitOfWork.Orm;
 
-    static async Task CrossDatabaseTransactionTestAsync()
+            await orm.Update<Order>()
+                .Set(o => o.Status == "已发货")
+                .Where(s => s.Id == 4).ExecuteAffrowsAsync();
+
+            repositoryUnitOfWork.InjectLocalMessageTableEx("OrderDelivery", "您的订单「4」已经发货", governing: "OrderNotice",
+                group: "Business1");
+
+            repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeERP", "ERP订单「4」已经发货",
+                governing: "OrderNotice",
+                group: "Business1");
+
+            repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeWareHouse", "WareHouse订单「4」已经发货",
+                governing: "OrderNotice",
+                group: "Business1");
+
+            repositoryUnitOfWork.InjectLocalMessageTableEx("OrderDelivery", "您的订单「4」已经发货", governing: "OrderNotice",
+                group: "Business2");
+
+            repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeERP", "ERP订单「4」已经发货",
+                governing: "OrderNotice",
+                group: "Business2");
+
+            repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeWareHouse", "WareHouse订单「4」已经发货",
+                governing: "OrderNotice",
+                group: "Business2");
+
+            repositoryUnitOfWork.Commit();
+        }
+
+        {
+            using var repositoryUnitOfWork =
+                Various.SharingPatterns.TimeRange.Use(DbEnum.Order, DateTime.Today).CreateUnitOfWork();
+
+
+            var orm = repositoryUnitOfWork.Orm;
+
+            await orm.Update<Order>()
+                .Set(o => o.Status == "已发货")
+                .Where(s => s.Id == 4).ExecuteAffrowsAsync();
+
+            repositoryUnitOfWork.InjectLocalMessageTableEx("OrderDelivery", "您的订单「4」已经发货");
+
+            repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeERP", "ERP订单「4」已经发货");
+
+            repositoryUnitOfWork.Commit();
+        }
+}
+
+#endregion
+
+#region Test Parallel
+
+static async Task TestParallelCrossDatabaseTransactionAsync()
+{
+    var transactions = Various.Transactions;
+
+    await Parallel.ForEachAsync(Enumerable.Range(1, 10), async (i, token) =>
     {
-        var transactions = Various.Transactions;
+        var productId = i;
 
-        // 正常数据库 不分库 无多租户
-        var basics = Various.UseElaborate(DbEnum.Basics);
-        // Hash 分片分库
-        var order = Various.SharingPatterns.Hash.UseElaborate(DbEnum.Order, "100001");
+        var order = Various.SharingPatterns.TimeRange.UseElaborate(DbEnum.Order, DateTime.Today);
+
         // 时间范围分库
-        var product = Various.SharingPatterns.TimeRange.UseElaborate(DbEnum.Product, DateTime.Today);
+        var product = Various.SharingPatterns.Hash.UseElaborate(DbEnum.Product, productId.ToString());
 
         // 三个不同数据库的事务组合
         using var achieve =
-            transactions.CrossDatabaseTransaction.Create("商品扣减,订单创建事务", basics, order, product);
+            transactions.CrossDatabaseTransaction.Create("商品扣减,订单创建事务", order, product);
         try
         {
             achieve.Begin();
 
-            await achieve.Orms.Orm1.Delete<object>().Where(a => true).ExecuteAffrowsAsync();
+            var updateProductAffrows = await achieve.Orms.Orm2.Update<Product>().Set(p => p.Price == 22)
+                .Where(p => p.Id == productId)
+                .ExecuteAffrowsAsync(token);
 
-            await achieve.Orms.Orm2.Delete<object>().Where(a => true).ExecuteAffrowsAsync();
+            if (updateProductAffrows == 0)
+            {
+                throw new Exception("商品不存在");
+            }
 
-            await achieve.Orms.Orm3.Delete<object>().Where(a => true).ExecuteAffrowsAsync();
+            var updateOrderAffrows = await achieve.Orms.Orm1.Update<Order>().Set(o => o.Price == 22)
+                .Where(a => a.ProductId == productId)
+                .ExecuteAffrowsAsync(token);
+
+            if (updateOrderAffrows == 0)
+            {
+                throw new Exception("订单不存在");
+            }
 
             achieve.Commit();
         }
@@ -267,7 +267,44 @@ class Program
             Console.WriteLine("商品扣减,订单创建事务 回滚");
             achieve.Rollback();
         }
-    }
+    });
+}
 
-    #endregion
+static async Task CrossDatabaseTransactionTestAsync()
+{
+    var transactions = Various.Transactions;
+
+    // 正常数据库 不分库 无多租户
+    var basics = Various.UseElaborate(DbEnum.Basics);
+
+    // Hash 分片分库
+    var order = Various.SharingPatterns.Hash.UseElaborate(DbEnum.Order, "100001");
+
+    // 时间范围分库
+    var product = Various.SharingPatterns.TimeRange.UseElaborate(DbEnum.Product, DateTime.Today);
+
+    // 三个不同数据库的事务组合
+    using var achieve =
+        transactions.CrossDatabaseTransaction.Create("商品扣减,订单创建事务", basics, order, product);
+    try
+    {
+        achieve.Begin();
+
+        await achieve.Orms.Orm1.Delete<object>().Where(a => true).ExecuteAffrowsAsync();
+
+        await achieve.Orms.Orm2.Delete<object>().Where(a => true).ExecuteAffrowsAsync();
+
+        await achieve.Orms.Orm3.Delete<object>().Where(a => true).ExecuteAffrowsAsync();
+
+        achieve.Commit();
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine("商品扣减,订单创建事务 回滚");
+        achieve.Rollback();
+    }
+}
+
+#endregion
+
 }
