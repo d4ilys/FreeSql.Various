@@ -1,6 +1,8 @@
 # FreeSql高级管理器
 
-### 安装包
+[TOC]
+
+## 🦄安装包
 
 ~~~shell
 # Package Manager
@@ -10,7 +12,7 @@ Install-Package FreeSql.Various
 dotnet add package FreeSql.Various
 ~~~
 
-### 初始化管理器
+## 💡初始化管理器
 
 > 创建数据库枚举
 
@@ -59,9 +61,9 @@ builder.Services.AddSingleton<FreeSqlVarious>(provder => {
 });
 ~~~
 
-### 注册数据库
+## 🐋注册数据库
 
-#### 不分库注册方式
+#### 不分库
 
 > FreeSqlVarious对象支持直接注册数据库
 
@@ -73,11 +75,11 @@ various.Register(DbEnum.Settings, () => new FreeSqlBuilder()
     .Build());
 ~~~
 
-#### 分库模型
+#### 分库
 
 `需要说明的是 FreeSql.Various天生支持多租户架构分库模型默认支持多租户，假如系统没有多租户需求，可以创建一个默认租户，方便扩展`
 
-> FreeSqlVarious对象中的SharingPatterns属性支持四种分库方式
+> FreeSqlVarious对象中的SharingPatterns属性支持四种分库模型
 
 ##### Tenant「多租户」
 
@@ -200,9 +202,9 @@ Various.SharingPatterns.TimeRange.Register(dbEnum, hashConfig);
 
 暂时未实现！！
 
-### 使用数据库
+## 🪼使用数据库
 
-#### 不分库
+### 不分库
 
 > 不分库非常简单，通过Use方式即可获得IFreeSql对象
 
@@ -212,7 +214,7 @@ db.Insert....
 db.Update....
 ~~~
 
-#### 分库模型
+### 分库模型
 
 > 因为分库模型默认支持多租户，所以需要设置租户上下文
 
@@ -230,7 +232,7 @@ app.Use(async (context, next) =>
 });
 ~~~
 
-##### Tenant「多租户」
+#### Tenant「多租户」
 
 ~~~C#
 var db = various.SharingPatterns.TimeRange.Use(DbEnum.Order);
@@ -238,7 +240,7 @@ db.Insert....
 db.Update....
 ~~~
 
-##### Hash「分片」
+#### Hash「分片」
 
 ~~~C#
 var productId = "";  //分片键
@@ -247,11 +249,11 @@ db.Insert....
 db.Update....
 ~~~
 
-##### TimeRange「时间分库」
+#### TimeRange「时间分库」
 
 > 按时间分库查询比较的特殊
 
-###### 获取数据库
+##### 获取数据库
 
 ~~~C#
 //根据日期获取数据库
@@ -262,7 +264,7 @@ IEnumerable<IFreeSql> orders = Various.SharingPatterns.TimeRange.Use(DbEnum.Orde
       DateTime.Parse("2025-06-01"));
 ~~~
 
-###### 跨库查询/操作
+##### 跨库查询/操作
 
 ~~~C#
 // 跨库操作
@@ -279,9 +281,7 @@ var queryResults = await Various.SharingPatterns.TimeRange.CrossDatabaseQueryAsy
                                                                                    .Where(o => o.Product = "1").ToListAsync());
 ~~~
 
-
-
-### 跨库统计/分页问题
+## 💦跨库统计/分页问题
 
 由于关系型数据库原生不支持分库，所以在分页查询/分组统计的时候会造成很大的麻烦
 
@@ -336,9 +336,9 @@ static async Task TableQueryAsync()
 }
 ~~~
 
-### 高级事务功能
+## 🌈高级事务功能
 
-#### 基于本地消息表的最终一致性
+### 基于本地消息表的最终一致性
 
 > 初始化调度器
 
@@ -479,7 +479,7 @@ static async Task LocalMessageTableTransactionNormalTestAsync()
 }
 ~~~
 
-#### 跨服务器的多库事务
+### 跨服务器的多库事务
 
 和单库事务一样效果相同，出现错误支持全量事务回滚 支持不同关系型数据库 例如 MySql SqlServer 支持数据库存放于不同服务器
 
