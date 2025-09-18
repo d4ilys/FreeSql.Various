@@ -1,8 +1,18 @@
 # FreeSql高级管理器
 
-[TOC]
+🦄[安装包](#安装包) 
 
-## 🦄安装包
+💡[初始化管理器](#初始化管理器)
+
+🐋[注册数据库](#注册数据库) 
+
+🪼[使用数据库](#使用数据库) 
+
+💦[安装包](#跨库统计/分页问题) 
+
+🌈[高级事务功能](#高级事务功能) 
+
+## 安装包
 
 ~~~shell
 # Package Manager
@@ -12,7 +22,7 @@ Install-Package FreeSql.Various
 dotnet add package FreeSql.Various
 ~~~
 
-## 💡初始化管理器
+## 初始化管理器
 
 > 创建数据库枚举
 
@@ -61,7 +71,7 @@ builder.Services.AddSingleton<FreeSqlVarious>(provder => {
 });
 ~~~
 
-## 🐋注册数据库
+## 注册数据库
 
 #### 不分库
 
@@ -202,7 +212,7 @@ Various.SharingPatterns.TimeRange.Register(dbEnum, hashConfig);
 
 暂时未实现！！
 
-## 🪼使用数据库
+## 使用数据库
 
 ### 不分库
 
@@ -281,7 +291,7 @@ var queryResults = await Various.SharingPatterns.TimeRange.CrossDatabaseQueryAsy
                                                                                    .Where(o => o.Product = "1").ToListAsync());
 ~~~
 
-## 💦跨库统计/分页问题
+## 跨库统计/分页问题
 
 由于关系型数据库原生不支持分库，所以在分页查询/分组统计的时候会造成很大的麻烦
 
@@ -336,7 +346,7 @@ static async Task TableQueryAsync()
 }
 ~~~
 
-## 🌈高级事务功能
+## 高级事务功能
 
 ### 基于本地消息表的最终一致性
 
