@@ -1,6 +1,6 @@
 # FreeSql高级管理器
 
-🦄[安装包](#安装包)<br>💡[初始化管理器](#初始化管理器)<br>🐋[注册数据库](#注册数据库) <br>🪼[使用数据库](#使用数据库) <br>💦[跨库统计/分页问题](#跨库统计/分页问题) <br>🌈[高级事务功能](#高级事务功能) 
+🦄[安装包](#安装包)<br>💡[初始化管理器](#初始化管理器)<br>🐋[注册数据库](#注册数据库) <br>🪼[使用数据库](#使用数据库) <br>💦[跨库统计及分页问题](#跨库统计及分页问题) <br>🌈[高级事务功能](#高级事务功能) 
 
 ## 安装包
 
@@ -284,7 +284,7 @@ var queryResults = await Various.SharingPatterns.TimeRange.CrossDatabaseQueryAsy
                                                                                    .Where(o => o.Product = "1").ToListAsync());
 ~~~
 
-## 跨库统计/分页问题
+## 跨库统计及分页问题
 
 由于关系型数据库原生不支持分库，所以在分页查询/分组统计的时候会造成很大的麻烦
 
@@ -293,9 +293,9 @@ var queryResults = await Various.SharingPatterns.TimeRange.CrossDatabaseQueryAsy
 **ElasticSearch** 自带`分片`功能，支持全文索引检索，支持分页和分组查询
 
 > 在TimeRange提供了一个功能
->
-> 1.如果查询的时间范围不跨库，则直接走关系型数据库
-> 2.如何跨库查询，直接走ElasticSearch查询委托
+
+* 如果查询的时间范围不跨库，则直接走关系型数据库
+* 如何跨库查询，直接走ElasticSearch查询委托
 
 ~~~c#
 
