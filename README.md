@@ -389,24 +389,25 @@ static void LocalMessageTableTransactionDispatchRunningTest()
     localMessageTableTransaction.RegisterDispatchDatabase(dispatchDbs.ToArray());
 
     //注册任务
-    localMessageTableTransaction.RegisterTaskExecutor("ShippingNoticeERP", "通知ERP系统",
+    localMessageTableTransaction.RegisterTaskExecutor("OrderSyncElasticSearch", "订单同步ElasticSearch",
         content =>
         {
-            
-            return Task.FromResult(random == 1);
+            //同步ElasticSearch
+            return true;
         });
 
     //注册任务
     localMessageTableTransaction.RegisterTaskExecutor("ShippingNoticeWareHouse", "通知仓库系统",
         content =>
         {
-            return Task.FromResult(random == 1);
+            //调用仓库服务通知仓库发货
+            return true;
         });
 
     localMessageTableTransaction.RegisterTaskExecutor("OrderDelivery", "订单发货通知用户", content =>
     {
-		
-        return Task.FromResult(random == 1);
+		//调用短信接口通知用户
+        return true;
     });
     
     //配置任务组调度
@@ -474,8 +475,9 @@ static async Task LocalMessageTableTransactionNormalTestAsync()
             .Where(s => s.Id == 4).ExecuteAffrowsAsync();
 
         repositoryUnitOfWork.InjectLocalMessageTableEx("OrderDelivery", "您的订单「4」已经发货");
-
-        repositoryUnitOfWork.InjectLocalMessageTableEx("ShippingNoticeERP", "ERP订单「4」已经发货");
+		
+        //修改ElasticSearch中的订单
+        repositoryUnitOfWork.InjectLocalMessageTableEx("OrderSyncElasticSearch", "订单数据");
 
         repositoryUnitOfWork.Commit();
     }
