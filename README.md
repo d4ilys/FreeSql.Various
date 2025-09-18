@@ -58,13 +58,16 @@ ASP.NET Core 通过IServiceCollection创建
 
 ~~~C#
 builder.Services.AddSingleton<FreeSqlVarious>(provder => {
+    
     var various = new FreeSqlVarious();
+    
     // 注册基础数据库
     Various.Register(DbEnum.Settings, () => new FreeSqlBuilder()
          .UseMonitorCommand(command => VariousConsole.Info<Program>(command.CommandText))
          .UseNoneCommandParameter(true)
          .UseConnectionString(DataType.Sqlite, $"Data Source={GenerateDbPath("settings")}")
          .Build());
+    
     //注册需要分库的数据库
     .......
     return various;
@@ -541,4 +544,3 @@ static async Task CrossDatabaseTransactionTestAsync()
     }
 }
 ~~~
-
