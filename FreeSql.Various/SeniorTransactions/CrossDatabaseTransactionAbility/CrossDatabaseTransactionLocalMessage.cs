@@ -1,4 +1,4 @@
-﻿using FreeSql.DataAnnotations;
+﻿ using FreeSql.DataAnnotations;
 
 namespace FreeSql.Various.SeniorTransactions.CrossDatabaseTransactionAbility
 {

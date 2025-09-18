@@ -11,7 +11,7 @@ namespace FreeSql.Various
             where TDbKey : notnull
         {
             var localMessageTableTransactionUnitOfWorker =
-                various.Transactions.LocalMessageTableTransaction.CreateUnitOfWorker();
+                various.SeniorTransactions.LocalMessageTableTransaction.CreateUnitOfWorker();
 
             //事务Fsql对象
             var tranFreeSql = freeSqlUnitOfWork.Orm;

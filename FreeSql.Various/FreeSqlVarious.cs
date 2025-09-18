@@ -11,20 +11,16 @@ namespace FreeSql.Various;
 
 public class FreeSqlVarious<TDbKey> where TDbKey : notnull
 {
-    private readonly FreeSqlSchedule _schedule;
-
-    private readonly VariousTenantContext _tenantContextContext;
-
     protected FreeSqlVarious()
     {
-        _tenantContextContext = new VariousTenantContext();
-        _schedule = new FreeSqlSchedule();
-        SharingPatterns = new VariousSharingPatterns<TDbKey>(_schedule, _tenantContextContext);
-        Transactions = new VariousTransactions<TDbKey>(_schedule);
+        TenantContext = new VariousTenantContext();
+        Schedule = new FreeSqlSchedule();
+        SharingPatterns = new VariousSharingPatterns<TDbKey>(Schedule, TenantContext);
+        SeniorTransactions = new VariousSeniorTransactions<TDbKey>(Schedule);
     }
 
     /// <summary>
-    /// 根据数据库枚举获取FreeSql对象
+    /// 举获取FreeSql对象
     /// </summary>    
     /// <param name="dbKey"></param>
     /// <returns></returns>
@@ -37,7 +33,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     }
 
     /// <summary>
-    /// 根据数据库名称获取FreeSql对象
+    /// 获取FreeSql对象
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
@@ -47,6 +43,12 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
         throw new Exception($"该数据库[{database}]未注册.");
     }
 
+    /// <summary>
+    /// 获取FreeSql描述对象
+    /// </summary>
+    /// <param name="dbKey"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
     public FreeSqlElaborate<TDbKey> UseElaborate(TDbKey dbKey)
     {
         var name = dbKey.ToString();
@@ -64,6 +66,11 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
         throw new Exception($"该数据库[{dbKey}]未注册.");
     }
 
+    /// <summary>
+    /// 注册数据库
+    /// </summary>
+    /// <param name="dbKey"></param>
+    /// <param name="create"></param>
     public void Register(TDbKey dbKey, Func<IFreeSql> create)
     {
         var name = dbKey.ToString();
@@ -82,7 +89,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     /// <summary>
     /// 租户上下文
     /// </summary>
-    public VariousTenantContext TenantContext => _tenantContextContext;
+    public VariousTenantContext TenantContext;
 
     /// <summary>
     /// 分库模型
@@ -90,7 +97,12 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     public VariousSharingPatterns<TDbKey> SharingPatterns { get; private set; }
 
     /// <summary>
-    /// 事务
+    /// 高级事务
     /// </summary>
-    public VariousTransactions<TDbKey> Transactions { get; private set; }
+    public VariousSeniorTransactions<TDbKey> SeniorTransactions { get; private set; }
+
+    /// <summary>
+    /// FreeSql调度器
+    /// </summary>
+    public FreeSqlSchedule Schedule { get; }
 }

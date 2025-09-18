@@ -58,7 +58,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                 {
                     try
                     {
-                        var key = schedule.GetIdleBus()
+                        var key = schedule.IdleBus()
                             .GetKeys(elaborate =>
                             {
                                 if (elaborate == null)
@@ -169,7 +169,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         /// <exception cref="Exception"></exception>
         public async Task<bool> DoAsync()
         {
-            var key = schedule.GetIdleBus()
+            var key = schedule.IdleBus()
                 .GetKeys(elaborate =>
                 {
                     if (elaborate == null)

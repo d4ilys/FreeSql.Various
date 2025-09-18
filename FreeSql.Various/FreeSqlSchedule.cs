@@ -12,7 +12,7 @@ public class FreeSqlSchedule
         return !_idleBus.Exists(key) ? throw new Exception($"该数据库[{key}]未注册.") : _idleBus.Get(key);
     }
 
-    public IdleBus<string, FreeSqlElaborate> GetIdleBus()
+    public IdleBus<string, FreeSqlElaborate> IdleBus()
     {
         return _idleBus;
     }

@@ -3,7 +3,7 @@ using FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility;
 
 namespace FreeSql.Various.SeniorTransactions
 {
-    public class VariousTransactions<TDbKey>(FreeSqlSchedule schedule)
+    public class VariousSeniorTransactions<TDbKey>(FreeSqlSchedule schedule)
     {
         /// <summary>
         /// 多库事务
