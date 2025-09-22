@@ -13,6 +13,7 @@ public enum DbEnum
     Product
 }
 
+
 public class FreeSqlVarious : FreeSqlVarious<DbEnum>
 {
 }

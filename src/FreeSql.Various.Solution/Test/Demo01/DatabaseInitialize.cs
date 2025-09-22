@@ -26,7 +26,7 @@ namespace Demo01
 
             settingDb.UseJsonMap();
 
-            //   await DatabaseSettingsInitialize(settingDb);
+            await DatabaseSettingsInitialize(settingDb);
 
             var tenants = await settingDb.Select<TenantManager>().ToListAsync();
 
@@ -98,7 +98,7 @@ namespace Demo01
                 });
 
                 //构建所有相关数据库
-                foreach (var connection in allDatabaseConnection.Where(a => a.DatabaseId == databaseManager.Id))
+                foreach (var connection in allDatabaseConnection.Where(a => a.SharingDatabaseId == databaseManager.Id))
                 {
                     timeRangeConfig.FreeSqlRegisterItems.Add(new FreeSqlRegisterItem
                     {
@@ -142,7 +142,7 @@ namespace Demo01
                 });
 
                 //构建所有相关数据库
-                foreach (var connection in allDatabaseConnection.Where(a => a.DatabaseId == databaseManager.Id))
+                foreach (var connection in allDatabaseConnection.Where(a => a.SharingDatabaseId == databaseManager.Id))
                 {
                     hashConfig.FreeSqlRegisterItems.Add(new FreeSqlRegisterItem
                     {
@@ -176,7 +176,7 @@ namespace Demo01
             {
                 //构建所有相关数据库
                 foreach (var connection in allDatabaseConnection.Where(a =>
-                             a.DatabaseId == databaseManager.Id))
+                             a.SharingDatabaseId == databaseManager.Id))
                 {
                     tenantConfig.FreeSqlRegisterItems.Add(new FreeSqlRegisterItem
                     {
@@ -300,77 +300,77 @@ namespace Demo01
                 {
                     new()
                     {
-                        DatabaseId = 1,
+                        SharingDatabaseId = 1,
                         DatabaseName = "basics_taobao",
                         ConnectionString = $"Data Source={GenerateDbPath("basics_taobao")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 2,
+                        SharingDatabaseId = 2,
                         DatabaseName = "order_taobao_2024",
                         ConnectionString = $"Data Source={GenerateDbPath("order_taobao_2024")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 2,
+                        SharingDatabaseId = 2,
                         DatabaseName = "order_taobao_2025",
                         ConnectionString = $"Data Source={GenerateDbPath("order_taobao_2025")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 3,
+                        SharingDatabaseId = 3,
                         DatabaseName = "product_taobao_1",
                         ConnectionString = $"Data Source={GenerateDbPath("product_taobao_1")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 3,
+                        SharingDatabaseId = 3,
                         DatabaseName = "product_taobao_2",
                         ConnectionString = $"Data Source={GenerateDbPath("product_taobao_2")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 4,
+                        SharingDatabaseId = 4,
                         DatabaseName = "basics_jd",
                         ConnectionString = $"Data Source={GenerateDbPath("basics_jd")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 5,
+                        SharingDatabaseId = 5,
                         DatabaseName = "order_jd_2024",
                         ConnectionString = $"Data Source={GenerateDbPath("order_jd_2024")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 5,
+                        SharingDatabaseId = 5,
                         DatabaseName = "order_jd_2025",
                         ConnectionString = $"Data Source={GenerateDbPath("order_jd_2025")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 6,
+                        SharingDatabaseId = 6,
                         DatabaseName = "product_jd_1",
                         ConnectionString = $"Data Source={GenerateDbPath("product_jd_1")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 6,
+                        SharingDatabaseId = 6,
                         DatabaseName = "product_jd_2",
                         ConnectionString = $"Data Source={GenerateDbPath("product_jd_2")}",
                         DataType = DataType.Sqlite
                     },
                     new()
                     {
-                        DatabaseId = 6,
+                        SharingDatabaseId = 6,
                         DatabaseName = "product_jd_3",
                         ConnectionString = $"Data Source={GenerateDbPath("product_jd_3")}",
                         DataType = DataType.Sqlite

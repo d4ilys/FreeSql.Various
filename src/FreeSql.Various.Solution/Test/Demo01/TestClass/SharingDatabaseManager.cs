@@ -48,8 +48,8 @@ namespace Demo01.TestClass
         [Column(IsPrimary = true, IsIdentity = true)]
         public int Id { get; set; }
 
-        public int DatabaseId { get; set; }
-         
+        public int SharingDatabaseId { get; set; }
+
         /// <summary>
         /// 数据库名称
         /// </summary>

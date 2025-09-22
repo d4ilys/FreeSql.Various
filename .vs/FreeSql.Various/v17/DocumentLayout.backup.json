@@ -1,0 +1,146 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{3312CEDE-D572-40A5-9D7D-F01DC62D9F72}|FreeSql.Various\\FreeSql.Various.csproj|d:\\program\\release\\csharp\\\u5206\u5E93\u5206\u8868\\freesql.various\\freesql.various\\freesql.various.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{3312CEDE-D572-40A5-9D7D-F01DC62D9F72}|FreeSql.Various\\FreeSql.Various.csproj|solutionrelative:freesql.various\\freesql.various.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{565E1A1F-03D1-4AD7-B11B-75AA676EC054}|Test\\Demo01\\Demo01.csproj|d:\\program\\release\\csharp\\\u5206\u5E93\u5206\u8868\\freesql.various\\test\\demo01\\freesqlvariousinstance.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{565E1A1F-03D1-4AD7-B11B-75AA676EC054}|Test\\Demo01\\Demo01.csproj|solutionrelative:test\\demo01\\freesqlvariousinstance.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{565E1A1F-03D1-4AD7-B11B-75AA676EC054}|Test\\Demo01\\Demo01.csproj|d:\\program\\release\\csharp\\\u5206\u5E93\u5206\u8868\\freesql.various\\test\\demo01\\databaseinitialize.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{565E1A1F-03D1-4AD7-B11B-75AA676EC054}|Test\\Demo01\\Demo01.csproj|solutionrelative:test\\demo01\\databaseinitialize.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{565E1A1F-03D1-4AD7-B11B-75AA676EC054}|Test\\Demo01\\Demo01.csproj|d:\\program\\release\\csharp\\\u5206\u5E93\u5206\u8868\\freesql.various\\test\\demo01\\dbenum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{565E1A1F-03D1-4AD7-B11B-75AA676EC054}|Test\\Demo01\\Demo01.csproj|solutionrelative:test\\demo01\\dbenum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{565E1A1F-03D1-4AD7-B11B-75AA676EC054}|Test\\Demo01\\Demo01.csproj|d:\\program\\release\\csharp\\\u5206\u5E93\u5206\u8868\\freesql.various\\test\\demo01\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{565E1A1F-03D1-4AD7-B11B-75AA676EC054}|Test\\Demo01\\Demo01.csproj|solutionrelative:test\\demo01\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3312CEDE-D572-40A5-9D7D-F01DC62D9F72}|FreeSql.Various\\FreeSql.Various.csproj|d:\\program\\release\\csharp\\\u5206\u5E93\u5206\u8868\\freesql.various\\freesql.various\\freesqlvarious.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3312CEDE-D572-40A5-9D7D-F01DC62D9F72}|FreeSql.Various\\FreeSql.Various.csproj|solutionrelative:freesql.various\\freesqlvarious.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 10,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:132:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DbEnum.cs",
+              "DocumentMoniker": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\Test\\Demo01\\DbEnum.cs",
+              "RelativeDocumentMoniker": "Test\\Demo01\\DbEnum.cs",
+              "ToolTip": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\Test\\Demo01\\DbEnum.cs",
+              "RelativeToolTip": "Test\\Demo01\\DbEnum.cs",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAswA8AAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-19T07:02:29.056Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "FreeSqlVariousInstance.cs",
+              "DocumentMoniker": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\Test\\Demo01\\FreeSqlVariousInstance.cs",
+              "RelativeDocumentMoniker": "Test\\Demo01\\FreeSqlVariousInstance.cs",
+              "ToolTip": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\Test\\Demo01\\FreeSqlVariousInstance.cs",
+              "RelativeToolTip": "Test\\Demo01\\FreeSqlVariousInstance.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAABBAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-19T07:02:26.93Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DatabaseInitialize.cs",
+              "DocumentMoniker": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\Test\\Demo01\\DatabaseInitialize.cs",
+              "RelativeDocumentMoniker": "Test\\Demo01\\DatabaseInitialize.cs",
+              "ToolTip": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\Test\\Demo01\\DatabaseInitialize.cs",
+              "RelativeToolTip": "Test\\Demo01\\DatabaseInitialize.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-19T07:02:22.992Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "FreeSqlVarious.cs",
+              "DocumentMoniker": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\FreeSql.Various\\FreeSqlVarious.cs",
+              "RelativeDocumentMoniker": "FreeSql.Various\\FreeSqlVarious.cs",
+              "ToolTip": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\FreeSql.Various\\FreeSqlVarious.cs",
+              "RelativeToolTip": "FreeSql.Various\\FreeSqlVarious.cs",
+              "ViewState": "AgIAADYAAAAAAAAAAAAlwGsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-18T09:06:33.947Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "FreeSql.Various.csproj",
+              "DocumentMoniker": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\FreeSql.Various\\FreeSql.Various.csproj",
+              "RelativeDocumentMoniker": "FreeSql.Various\\FreeSql.Various.csproj",
+              "ToolTip": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\FreeSql.Various\\FreeSql.Various.csproj",
+              "RelativeToolTip": "FreeSql.Various\\FreeSql.Various.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwgAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-09-18T09:05:58.076Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\Test\\Demo01\\Program.cs",
+              "RelativeDocumentMoniker": "Test\\Demo01\\Program.cs",
+              "ToolTip": "D:\\Program\\Release\\CSharp\\\u5206\u5E93\u5206\u8868\\FreeSql.Various\\Test\\Demo01\\Program.cs",
+              "RelativeToolTip": "Test\\Demo01\\Program.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAqwB4AAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-18T06:43:24.076Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

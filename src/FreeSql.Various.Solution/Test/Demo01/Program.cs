@@ -107,7 +107,6 @@ class Program
 
                 return Task.FromResult(random == 1);
             });
-
         //注册任务
         localMessageTableTransaction.RegisterTaskExecutor("ShippingNoticeWareHouse", "通知仓库系统",
             content =>

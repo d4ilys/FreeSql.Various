@@ -80,7 +80,7 @@ various.Register(DbEnum.Settings, () => new FreeSqlBuilder()
 
 #### 分库
 
-`需要说明的是 FreeSql.Various天生支持多租户架构分库模型默认支持多租户，假如系统没有多租户需求，可以创建一个默认租户，方便扩展`
+**需要说明的是 FreeSql.Various天生支持多租户架构分库模型默认支持多租户，假如系统没有多租户需求，可以创建一个默认租户，方便扩展**
 
 > FreeSqlVarious对象中的SharingPatterns属性支持四种分库模型
 
@@ -500,7 +500,7 @@ static async Task LocalMessageTableTransactionNormalTestAsync()
 
 > 如果出现事务不一致，可以去 various_cross_message 查看执行日志，里面保存着 所有事务执行的非查询的SQL
 
-~~~C#
+~~~ C#
 static async Task CrossDatabaseTransactionTestAsync()
 {
     var transactions = Various.SeniorTransactions;

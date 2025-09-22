@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Authors>Daily</Authors>
-		<Version>0.0.0.1-preview20250901001</Version>
+		<Version>0.0.0.1-preview20250901801</Version>
 		<Description>FreeSql管理器 支持多种分库模型、多种事务模型</Description>
 		<IsPackable>true</IsPackable>
 		<RepositoryUrl>https://git.lemihy.cn/lemi.microservice/lemi.microservice.api</RepositoryUrl>

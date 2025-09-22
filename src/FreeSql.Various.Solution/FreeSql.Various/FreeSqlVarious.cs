@@ -6,6 +6,7 @@ using FreeSql.Various.Sharing;
 using FreeSql.Various.Utilitys;
 using System;
 using System.Collections.Concurrent;
+using FreeSql.Various.Dashboard;
 
 namespace FreeSql.Various;
 
@@ -15,6 +16,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     {
         TenantContext = new VariousTenantContext();
         Schedule = new FreeSqlSchedule();
+        Dashboard = new VariousDashboard();
         SharingPatterns = new VariousSharingPatterns<TDbKey>(Schedule, TenantContext);
         SeniorTransactions = new VariousSeniorTransactions<TDbKey>(Schedule);
     }
@@ -28,7 +30,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     public IFreeSql Use(TDbKey dbKey)
     {
         var name = dbKey.ToString();
-        if (name != null) return _schedule.Get(name).FreeSql;
+        if (name != null) return Schedule.Get(name).FreeSql;
         throw new Exception($"该数据库[{dbKey}]未注册.");
     }
 
@@ -39,7 +41,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     /// <exception cref="Exception"></exception>
     public IFreeSql Use(string database)
     {
-        if (!string.IsNullOrWhiteSpace(database)) return _schedule.Get(database).FreeSql;
+        if (!string.IsNullOrWhiteSpace(database)) return Schedule.Get(database).FreeSql;
         throw new Exception($"该数据库[{database}]未注册.");
     }
 
@@ -54,7 +56,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
         var name = dbKey.ToString();
         if (name != null)
         {
-            var ela = _schedule.Get(name);
+            var ela = Schedule.Get(name);
             return new FreeSqlElaborate<TDbKey>
             {
                 DbKey = dbKey,
@@ -75,7 +77,7 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     {
         var name = dbKey.ToString();
         if (name != null)
-            _schedule.Register(name, () =>
+            Schedule.Register(name, () =>
             {
                 var freeSql = FreeSqlRegisterShim.Create(create);
                 return new FreeSqlElaborate
@@ -105,4 +107,9 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
     /// FreeSql调度器
     /// </summary>
     public FreeSqlSchedule Schedule { get; }
+
+    /// <summary>
+    /// 仪表盘
+    /// </summary>
+    public VariousDashboard Dashboard { get; }
 }
