@@ -90,6 +90,7 @@ class Program
 
         var dispatchDbs = productDbs.ToList();
 
+
         dispatchDbs.AddRange(orderDbs);
 
         //注册需要调度的数据库

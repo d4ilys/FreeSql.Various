@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using FreeSql.Various.Dashboard.Models;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace FreeSql.Various.Dashboard
 {
@@ -13,18 +10,42 @@ namespace FreeSql.Various.Dashboard
         /// <summary>
         /// 执行器Id
         /// </summary>
-        public required string ExecutorId { get; set; }
+        public string ExecutorId { get; set; }
 
         /// <summary>
         /// 执行器标题
         /// </summary>
-        public required string ExecutorTitle { get; set; }
+        public string ExecutorTitle { get; set; }
 
         /// <summary>
         /// 执行动作
         /// </summary>
-        public required Func<VariousDashboardCustomExecutorUiElements, Task<bool>> Executor { get; set; }
+        public Func<VariousDashboardCustomExecutorUiElements, Task<bool>>? ExecutorDelegate { get; set; }
+
+        /// <summary>
+        /// 注册执行器
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="func">在Class具体实现</param>
+        /// <param name="executorInstanceDelegate">Class实例 如果存在有参构造函数自定义实例化</param>
+        public void RegisterExecutor<T>(
+            Func<T, Func<VariousDashboardCustomExecutorUiElements, Task<bool>>> func,
+            Func<T>? executorInstanceDelegate = null) where T : class
+        {
+            try
+            {
+                var obj = executorInstanceDelegate?.Invoke();
+                //反射创建T
+                var t = obj ?? Activator.CreateInstance(typeof(T));
+                ExecutorDelegate = elements => func(t as T ?? throw new Exception("添加执行器错误"))(elements);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
     }
+
 
     public class VariousDashboardCustomExecutorUiElements
     {
@@ -62,10 +83,56 @@ namespace FreeSql.Various.Dashboard
             }));
         }
 
+        /// <summary>
+        /// 确认发送Post请求
+        /// </summary>
+        public void AfterConfirmRequest(ConfirmRequestConfig config)
+        {
+            SendMessageFunc(GenerateUiElements(VariousDashboardCustomExecutorUiElementsType.AfterConfirmRequest, new
+            {
+                router = config.Router,
+                jsonBody = config.JsonBody,
+                headers = config.Headers,
+                contentStyle = config.ContentStyle,
+                payload = config.Payload,
+                title = config.ConfirmDialogTitle,
+                content = config.ConfirmDialogContent,
+            }));
+        }
+
+        public void Alert(string confirmDialogTitle, string confirmDialogContent, string confirmPayload)
+        {
+            SendMessageFunc(GenerateUiElements(VariousDashboardCustomExecutorUiElementsType.Alert, new
+            {
+                title = confirmDialogTitle,
+                content = confirmDialogContent,
+                payload = confirmPayload
+            }));
+        }
+
+        public void Dialog(VariousExecutorDialogType type, string confirmDialogTitle, string confirmDialogContent)
+        {
+            string? name = Enum.GetName(type);
+            //首字母小写
+            name = name?.Substring(0, 1).ToLower() + name?.Substring(1);
+            SendMessageFunc(GenerateUiElements(VariousDashboardCustomExecutorUiElementsType.Dialog, new
+            {
+                type = name,
+                title = confirmDialogTitle,
+                content = confirmDialogContent
+            }));
+        }
+
         public void ShowLoading(string progressMessage)
         {
             SendMessageFunc(GenerateUiElements(VariousDashboardCustomExecutorUiElementsType.ShowLoading,
                 progressMessage));
+        }
+
+        public void OpenUrl(string url)
+        {
+            SendMessageFunc(GenerateUiElements(VariousDashboardCustomExecutorUiElementsType.OpenUrl,
+                url));
         }
 
         public void HideLoading()
@@ -79,8 +146,12 @@ namespace FreeSql.Various.Dashboard
             {
                 VariousDashboardCustomExecutorUiElementsType.Notification => new
                     { type = "Notification", body = message },
+                VariousDashboardCustomExecutorUiElementsType.OpenUrl => new
+                    { type = "OpenUrl", body = message },
                 VariousDashboardCustomExecutorUiElementsType.Message => new { type = "Message", body = message },
-                VariousDashboardCustomExecutorUiElementsType.Dialog => new { type = "Dialog", body = message },
+                VariousDashboardCustomExecutorUiElementsType.Alert => new { type = "Alert", body = message },
+                VariousDashboardCustomExecutorUiElementsType.AfterConfirmRequest => new
+                    { type = "AfterConfirmRequest", body = message },
                 VariousDashboardCustomExecutorUiElementsType.ShowLoading =>
                     new { type = "ShowLoading", body = message },
                 VariousDashboardCustomExecutorUiElementsType.HideLoading =>
@@ -98,14 +169,24 @@ namespace FreeSql.Various.Dashboard
     {
         Notification,
         Message,
+        AfterConfirmRequest,
         Dialog,
+        Alert,
         ShowLoading,
-        HideLoading
+        HideLoading,
+        OpenUrl
     }
 
     public enum VariousExecutorNotificationType
     {
         Info,
+        Success,
+        Warning,
+        Error
+    }
+
+    public enum VariousExecutorDialogType
+    {
         Success,
         Warning,
         Error

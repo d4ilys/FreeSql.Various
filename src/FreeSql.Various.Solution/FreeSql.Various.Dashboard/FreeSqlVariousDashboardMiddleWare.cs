@@ -1,91 +1,86 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Primitives;
 
 namespace FreeSql.Various.Dashboard
 {
-    public static class FreeSqlVariousDashboardMiddlewareExtension
+    internal class FreeSqlVariousDashboardMiddleware
     {
-        public static WebApplication UseVariousDashboard(this WebApplication app,
-            Action<FreeSqlVariousDashboardOptions> options)
+        private readonly StaticFileMiddleware _staticFileMiddleware;
+        private readonly FreeSqlVariousDashboardOptions _options;
+
+        public FreeSqlVariousDashboardMiddleware(RequestDelegate next,
+            IWebHostEnvironment hostingEnv,
+            ILoggerFactory loggerFactory,
+            FreeSqlVariousDashboardOptions options)
         {
-            var optionsInternal = new FreeSqlVariousDashboardOptions();
-            options(optionsInternal);
-            app.UseStaticFiles();
-            app.Use(async (context, next) =>
-            {
-                var httpMethod = context.Request.Method;
-
-                var path = context.Request.Path.Value;
-
-                // If the RoutePrefix is requested (with or without trailing slash), redirect to index URL
-                if (httpMethod == "GET" && path != null &&
-                    Regex.IsMatch(path, $"^/?{Regex.Escape(optionsInternal.DashboardPath)}/?$"))
-                {
-                    // Use relative redirect to support proxy environments
-                    var relativeRedirectPath = path.EndsWith("/")
-                        ? "index.html"
-                        : $"{path.Split('/').Last()}/index.html";
-
-                    RespondWithRedirect(context.Response, relativeRedirectPath);
-                    return;
-                }
-
-                if (httpMethod == "GET" && path != null &&
-                    Regex.IsMatch(path, $"^/{Regex.Escape(optionsInternal.DashboardPath)}/?index.html$"))
-                {
-                    await RespondWithIndexHtmlAsync(context.Response);
-                    return;
-                }
-
-                await next();
-            });
-
-            app.MapGet("/getExecutors", () =>
-            {
-                var executors = optionsInternal.VariousDashboard.CustomExecutors;
-
-                var enumerable = executors
-                    .Select(executor => new { id = executor.ExecutorId, title = executor.ExecutorTitle })
-                    .ToList();
-                return enumerable;
-            });
-
-            app.MapGet("/executor", async context =>
-            {
-                var response = context.Response;
-                //响应头部添加text/event-stream
-                response.Headers.Append("Content-Type", "text/event-stream");
-                await response.WriteAsync($"event:handler\r\r");
-                var id = context.Request.Query["id"];
-                var executor = optionsInternal.VariousDashboard.CustomExecutors.FirstOrDefault(e => e.ExecutorId == id);
-
-                var elements = new VariousDashboardCustomExecutorUiElements()
-                {
-                    SendMessageFunc = async message =>
-                    {
-                        await response.WriteAsync($"data:{message}\r\r");
-                        await response.Body.FlushAsync();
-                    }
-                };
-                await executor?.Executor.Invoke(elements)!;
-
-                context.Response.Body.Close();
-            });
-
-            return app;
+            _options = options;
+            _staticFileMiddleware = CreateStaticFileMiddleware(next, hostingEnv, loggerFactory, options);
         }
 
-        private static void RespondWithRedirect(HttpResponse response, string location)
+
+        public async Task Invoke(HttpContext context)
+        {
+            var httpMethod = context.Request.Method;
+
+            var path = context.Request.Path.Value;
+
+            // If the RoutePrefix is requested (with or without trailing slash), redirect to index URL
+            if (httpMethod == "GET" && path != null &&
+                Regex.IsMatch(path, $"^/?{Regex.Escape(_options.DashboardPath)}/?$"))
+            {
+                
+                // Use relative redirect to support proxy environments
+                var relativeRedirectPath = path.EndsWith("/")
+                    ? "index.html"
+                    : $"{path.Split('/').Last()}/index.html";
+
+                RespondWithRedirect(context.Response, relativeRedirectPath);
+                return;
+            }
+
+            if (httpMethod == "GET" && path != null &&
+                Regex.IsMatch(path, $"^/{Regex.Escape(_options.DashboardPath)}/?index.html$"))
+            {
+                await RespondWithIndexHtmlAsync(context.Response);
+                return;
+            }
+
+            await _staticFileMiddleware.Invoke(context);
+        }
+
+        StaticFileMiddleware CreateStaticFileMiddleware(
+            RequestDelegate next,
+            IWebHostEnvironment hostingEnv,
+            ILoggerFactory loggerFactory,
+            FreeSqlVariousDashboardOptions options)
+        {
+            string embeddedFileNamespace = "FreeSql.Various.Dashboard";
+            var staticFileOptions = new StaticFileOptions
+            {
+                RequestPath = string.IsNullOrEmpty(options.DashboardPath) ? string.Empty : $"/{options.DashboardPath}",
+                FileProvider = new EmbeddedFileProvider(
+                    typeof(FreeSqlVariousDashboardMiddleware).GetTypeInfo().Assembly,
+                    embeddedFileNamespace),
+            };
+
+            return new StaticFileMiddleware(next, hostingEnv, Options.Create(staticFileOptions), loggerFactory);
+        }
+
+        private void RespondWithRedirect(HttpResponse response, string location)
         {
             response.StatusCode = 301;
             response.Headers["Location"] = location;
         }
 
-        private static async Task RespondWithIndexHtmlAsync(HttpResponse response)
+        private async Task RespondWithIndexHtmlAsync(HttpResponse response)
         {
             response.StatusCode = 200;
             response.ContentType = "text/html;charset=utf-8";

@@ -1,5 +1,5 @@
-﻿using FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility;
-using FreeSql.Various.Utilitys;
+﻿using FreeSql.Various.Dashboard;
+using FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility;
 
 namespace FreeSql.Various
 {
@@ -45,6 +45,14 @@ namespace FreeSql.Various
             }
 
             return localMessageTableTransactionUnitOfWorker;
+        }
+
+        public static void Add(this IList<VariousDashboardCustomExecutor> list,
+            Action<VariousDashboardCustomExecutor> action)
+        {
+            var exe = new VariousDashboardCustomExecutor();
+            action(exe);
+            list.Add(exe);
         }
     }
 }

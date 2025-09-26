@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
+		<IncludeSymbols>true</IncludeSymbols>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
@@ -11,22 +12,37 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\FreeSql.Various\FreeSql.Various.csproj" />
+		<ProjectReference Include="..\FreeSql.Various\FreeSql.Various.csproj" />
 	</ItemGroup>
 
+	<PropertyGroup>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<Product>FreeSql.Various.Dashboard</Product>
+	</PropertyGroup>
 
 	<ItemGroup>
-		<!--<None Remove="favicon.ico" />-->
-		<None Remove="index.html" />
-		<!--<EmbeddedResource Include="favicon.ico">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</EmbeddedResource>-->
+		<EmbeddedResource Include="assets\*" />
+		<Compile Remove="assets\*" />
 		<EmbeddedResource Include="index.html">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</EmbeddedResource>
 		<EmbeddedResource Include="logo.png">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="assets\" />
 	</ItemGroup>
 
 </Project>
