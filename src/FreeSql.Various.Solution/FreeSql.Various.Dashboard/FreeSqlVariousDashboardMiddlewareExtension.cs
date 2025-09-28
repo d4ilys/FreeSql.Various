@@ -1,13 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 namespace FreeSql.Various.Dashboard
@@ -27,10 +19,18 @@ namespace FreeSql.Various.Dashboard
             {
                 var executors = optionsInternal.VariousDashboard.CustomExecutors;
 
-                var enumerable = executors
-                    .Select(executor => new { id = executor.ExecutorId, title = executor.ExecutorTitle })
-                    .ToList();
-                return enumerable;
+                var res = executors.Select(pair => new
+                {
+                    group = pair.Key,
+                    executors = pair.Value.Select(executor => new
+                    {
+                        id = executor.ExecutorId,
+                        title = executor.ExecutorTitle,
+                        group = pair.Key
+                    })
+                }).ToList();
+
+                return res;
             });
 
             app.MapGet("/executor", async context =>
@@ -40,7 +40,9 @@ namespace FreeSql.Various.Dashboard
                 response.Headers.Append("Content-Type", "text/event-stream");
                 await response.WriteAsync($"event:handler\r\r");
                 var id = context.Request.Query["id"];
-                var executor = optionsInternal.VariousDashboard.CustomExecutors.FirstOrDefault(e => e.ExecutorId == id);
+                var group = context.Request.Query["group"].ToString();
+                var executor = optionsInternal.VariousDashboard.CustomExecutors[group]
+                    .FirstOrDefault(e => e.ExecutorId == id);
 
                 var elements = new VariousDashboardCustomExecutorUiElements()
                 {
@@ -50,7 +52,8 @@ namespace FreeSql.Various.Dashboard
                         await response.Body.FlushAsync();
                     }
                 };
-                await executor?.ExecutorDelegate.Invoke(elements)!;
+
+                await executor?.ExecutorDelegate?.Invoke(elements)!;
 
                 context.Response.Body.Close();
             });

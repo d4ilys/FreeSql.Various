@@ -42,7 +42,6 @@ namespace WebApplication01Test.CustomExecutor
                 Payload = ""
             });
             return Task.FromResult(true);
-            return Task.FromResult(true);
         }
     }
 }

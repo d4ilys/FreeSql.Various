@@ -1,10 +1,13 @@
-<script setup>
+<script lang="jsx" setup>
 import {apiUrl} from '../tools.js';
-import {useNotification, useMessage, useDialog} from 'naive-ui'
+import {useNotification, useMessage, useDialog, useModal} from 'naive-ui'
+import {taskQueue} from '../task-queue.js';
+import {h, ref} from "vue";
 
 const notification = useNotification();
 const message = useMessage()
 const dialog = useDialog()
+const modal = useModal()
 let msgReactive = null
 const loadingRef = ref("")
 const executors = ref([]);
@@ -17,18 +20,30 @@ function randomButtonType() {
 
 fetch(apiUrl('/getExecutors'), {
   method: 'GET',
-}).then(res => res.json()).then(data => {
-  executors.value = data;
+}).then(res => res.text()).then(data => {
+  executors.value = JSON.parse(data);
 })
+
+taskQueue.on('taskReady', (task, onComplete) => {
+  const data = {...task.item};
+  data.onComplete = onComplete;
+  task.handler(data);
+});
 
 function exec(item) {
   const url = apiUrl('/executor');
   const source = new EventSource(`${url}?${new URLSearchParams({
     id: item.id,
+    group: item.group
   })}`);
 
   source.onmessage = (e) => {
-    handleBackendCalls(JSON.parse(e.data));
+    const item = JSON.parse(e.data);
+    const calls = handleBackendCalls(item);
+    taskQueue.enqueue({
+      handler: calls.handler,
+      item: item
+    })
   };
 
   source.onerror = (e) => {
@@ -37,7 +52,7 @@ function exec(item) {
 }
 
 function handleBackendCalls(item) {
-  return processingBackendCalls.find(call => call.type === item.type)?.handler(item)
+  return processingBackendCalls.find(call => call.type === item.type)
 }
 
 //#region 处理后端需要前端做的事情！
@@ -47,6 +62,15 @@ const handleDialog = (item) => {
     title: item.body.title,
     content: item.body.content,
     positiveText: '确定',
+    onPositiveClick: (done) => {
+      item.onComplete()
+    },
+    onMaskClick: () => {
+      item.onComplete();
+    },
+    onClose: () => {
+      item.onComplete();
+    },
     draggable: true
   })
 }
@@ -66,6 +90,7 @@ const handleShowLoading = (item) => {
       duration: 0
     })
   }
+  item.onComplete();
 }
 
 processingBackendCalls.push({
@@ -78,6 +103,7 @@ const handleHideLoading = (item) => {
     msgReactive.destroy();
     msgReactive = null
   }
+  item.onComplete();
 }
 
 processingBackendCalls.push({
@@ -89,6 +115,7 @@ const handleMessage = (item) => {
   message[item.body.type](item.body.message, {
     duration: item.body.duration
   })
+  item.onComplete();
 }
 
 processingBackendCalls.push({
@@ -102,6 +129,7 @@ const handleNotification = (item) => {
     meta: item.body.message,
     duration: item.body.duration
   })
+  item.onComplete();
 }
 
 processingBackendCalls.push({
@@ -116,26 +144,32 @@ const handleAfterConfirmRequest = (item) => {
     marginTop: dialogMarginTop
   };
   const dialogContentStyle = {};
-  console.log(item.body.contentStyle)
   if (item.body.contentStyle) {
     for (const header in item.body.contentStyle) {
       dialogContentStyle[header] = item.body.contentStyle[header];
     }
   }
 
-
   if (item.body.content.length > 100) {
-    style.width = "700px"
+    style.width = "770px"
   }
 
   dialog.warning({
     title: item.body.title,
-    content: item.body.content,
+    content: () => h('p', {
+      innerHTML: item.body.content
+    }),
     positiveText: "执行",
     contentStyle: dialogContentStyle,
     style: style,
     negativeText: "取消",
     draggable: true,
+    onClose: () => {
+      item.onComplete();
+    },
+    onMaskClick: () => {
+      item.onComplete();
+    },
     onPositiveClick: () => {
       // 执行请求
       const requestRouter = item.body.router;
@@ -155,18 +189,15 @@ const handleAfterConfirmRequest = (item) => {
         headers: requestHeaders,
         body: requestJsonBody
       }).then(res => res.text()).then(data => {
-        dialog.success({
-          title: '提示',
-          style: {
-            marginTop: dialogMarginTop
-          },
-          content: data,
-          positiveText: '确定'
-        })
-      })
+        dialogWaring(data);
+        item.onComplete();
+      }).catch(e => {
+        dialogWaring(e);
+        item.onComplete();
+      });
     },
     onNegativeClick: () => {
-      message.info("取消执行");
+      item.onComplete();
     }
   });
 };
@@ -176,8 +207,157 @@ processingBackendCalls.push({
   handler: handleAfterConfirmRequest,
 })
 
+const handleModalFromRequest = (item) => {
+  const formValue = reactive({});
+  const rules = {};
+  const formRef = ref(null);
+  const components = item.body.Components;
+  for (let component of components) {
+    rules[component.Name] = component.Rules
+    formValue[component.Name] = component.DefaultValue;
+  }
+  const m = modal.create({
+    title: item.body.Title,
+    preset: 'card',
+    maskClosable: false,
+    style: {
+      marginTop: dialogMarginTop,
+      width: "500px"
+    },
+    onClose: () => {
+      item.onComplete();
+    },
+    onNegativeClick: () => {
+      item.onComplete();
+    },
+    onMaskClick: () => {
+      item.onComplete();
+    },
+    footer: () =>
+        <div style="text-align: right">
+          <NButton onClick={close} size="small">
+            取消
+          </NButton>
+          &nbsp;&nbsp;&nbsp;&nbsp;
+          <NButton onClick={commit} type="success" size="small">
+            提交
+          </NButton>
+        </div>,
+    content: () =>
+        (
+            <n-form model={formValue} rules={rules} size="small" ref={formRef}>
+              <br/>
+              {components.map((component, index) => {
+                // 根据component.type渲染不同的组件
+                switch (component.Type) {
+                  case 0:
+                    return (
+                        <n-form-item
+                            path={component.Name}
+                            label={component.Label}
+                        >
+                          <n-input
+                              key={index}
+                              v-model:value={formValue[component.Name]}
+                              placeholder={`请输入${component.Label}`}
+                          />
+                        </n-form-item>
+                    );
+                  case 1:
+                    return (
+                        <n-form-item
+                            path={component.Name}
+                            label={component.Label}
+                        >
+                          <n-input
+                              key={index}
+                              type="textarea"
+                              v-model:value={formValue[component.Name]}
+                              placeholder={`请输入${component.Label}`}
+                              rows={component.rows || 3}
+                          />
+                        </n-form-item>
+                    );
+                  case 2:
+                    return (
+                        <n-form-item
+                            path={component.Name}
+                            label={component.Label}
+                        >
+                          <n-select
+                              key={index}
+                              placeholder={`请选择${component.Label}`}
+                              v-model:value={formValue[component.Name]}
+                              options={component.Options || []}
+                          />
+                        </n-form-item>
+                    );
+                  default:
+                    return null;
+                }
+              })}
+            </n-form>
+        )
+  })
+
+  function close() {
+    m.destroy()
+    item.onComplete();
+  }
+
+  function commit() {
+    formRef.value?.validate((errors) => {
+      if (!errors) {
+        // 执行请求
+        const requestRouter = item.body.Router;
+        const requestJsonBody = JSON.stringify(formValue);
+        const requestHeaders = {
+          'Content-Type': 'application/json'
+        };
+
+        if (item.body.headers) {
+          for (const header in item.body.headers) {
+            requestHeaders[header] = item.body.headers[header];
+          }
+        }
+
+        fetch(apiUrl(requestRouter), {
+          method: 'POST',
+          headers: requestHeaders,
+          body: requestJsonBody
+        }).then(res => res.text()).then(data => {
+          dialogWaring(data);
+          item.onComplete();
+        }).catch(e => {
+          dialogWaring(e);
+          item.onComplete();
+        });
+      } else {
+        message.error('必填项不能为空')
+        item.onComplete();
+      }
+    })
+  }
+};
+
+processingBackendCalls.push({
+  type: "ModalFromRequest",
+  handler: handleModalFromRequest,
+})
+
+function dialogWaring(message) {
+  dialog.warning({
+    title: '通知',
+    style: {
+      marginTop: "250px"
+    },
+    content: message,
+    positiveText: '确定',
+    draggable: true,
+  })
+}
+
 const handleAlert = (item) => {
-  console.log(item.body)
   dialog.info({
     title: item.body.title,
     style: {
@@ -185,6 +365,12 @@ const handleAlert = (item) => {
     },
     content: item.body.content,
     positiveText: '确定',
+    onPositiveClick: (done) => {
+      item.onComplete()
+    },
+    onClose: () => {
+      item.onComplete();
+    },
     draggable: true
   })
 };
@@ -195,6 +381,7 @@ processingBackendCalls.push({
 
 const handleOpenUrl = (item) => {
   window.open(item.body, '_blank');
+  item.onComplete();
 };
 
 processingBackendCalls.push({
@@ -207,13 +394,19 @@ processingBackendCalls.push({
 </script>
 
 <template>
+  <template v-for="item in executors" :key="item.group">
+    <n-divider title-placement="left">
+      {{ item.group }}
+    </n-divider>
+    <n-space>
+      <n-button :type="randomButtonType()" v-for="b in item.executors" :key="b.id" @click="exec(b)">
+        {{
+          b.title
+        }}
+      </n-button>
+    </n-space>
+  </template>
 
-  <n-space>
-    <n-button :type="randomButtonType()" v-for="item in executors" :key="item" @click="exec(item)">{{
-        item.title
-      }}
-    </n-button>
-  </n-space>
 
 </template>
 

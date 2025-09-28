@@ -5,6 +5,14 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<Authors>Daily</Authors>
+		<Version>0.0.0.1-preview2025092701</Version>
+		<Description>FreeSql管理器 Dashboard</Description>
+		<IsPackable>true</IsPackable>
+		<RepositoryUrl>https://github.com/d4ilys/FreeSql.Various</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -25,11 +33,10 @@
 
 	<ItemGroup>
 		<EmbeddedResource Include="assets\*" />
-		<Compile Remove="assets\*" />
-		<EmbeddedResource Include="index.html">
+		<EmbeddedResource Include="logo.png">
 			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</EmbeddedResource>
-		<EmbeddedResource Include="logo.png">
+		<EmbeddedResource Include="index.html">
 			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</EmbeddedResource>
 	</ItemGroup>
@@ -39,10 +46,6 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="assets\" />
 	</ItemGroup>
 
 </Project>
