@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Authors>Daily</Authors>
-		<Version>0.0.0.1-preview2025092701</Version>
+		<Version>0.0.0.1-preview2025092901</Version>
 		<Description>FreeSql管理器 支持多种分库模型、多种事务模型</Description>
 		<IsPackable>true</IsPackable>
 		<RepositoryUrl>https://github.com/d4ilys/FreeSql.Various</RepositoryUrl>

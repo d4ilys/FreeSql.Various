@@ -2,6 +2,10 @@
 const baseUrl = import.meta.env.VITE_API_URL;
 
 export const apiUrl = (path: string) => {
+    if (!baseUrl) {
+        return path;
+    }
+
     // 清除baseUrl末尾的所有斜杠
     const normalizedBase = baseUrl.replace(/\/+$/, '');
     // 清除path开头的所有斜杠

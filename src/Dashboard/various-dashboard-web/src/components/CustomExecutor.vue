@@ -243,61 +243,14 @@ const handleModalFromRequest = (item) => {
             提交
           </NButton>
         </div>,
-    content: () =>
-        (
-            <n-form model={formValue} rules={rules} size="small" ref={formRef}>
-              <br/>
-              {components.map((component, index) => {
-                // 根据component.type渲染不同的组件
-                switch (component.Type) {
-                  case 0:
-                    return (
-                        <n-form-item
-                            path={component.Name}
-                            label={component.Label}
-                        >
-                          <n-input
-                              key={index}
-                              v-model:value={formValue[component.Name]}
-                              placeholder={`请输入${component.Label}`}
-                          />
-                        </n-form-item>
-                    );
-                  case 1:
-                    return (
-                        <n-form-item
-                            path={component.Name}
-                            label={component.Label}
-                        >
-                          <n-input
-                              key={index}
-                              type="textarea"
-                              v-model:value={formValue[component.Name]}
-                              placeholder={`请输入${component.Label}`}
-                              rows={component.rows || 3}
-                          />
-                        </n-form-item>
-                    );
-                  case 2:
-                    return (
-                        <n-form-item
-                            path={component.Name}
-                            label={component.Label}
-                        >
-                          <n-select
-                              key={index}
-                              placeholder={`请选择${component.Label}`}
-                              v-model:value={formValue[component.Name]}
-                              options={component.Options || []}
-                          />
-                        </n-form-item>
-                    );
-                  default:
-                    return null;
-                }
-              })}
-            </n-form>
-        )
+    content: () => (
+        <n-form model={formValue} rules={rules} size="small" ref={formRef}>
+          <br/>
+          {item.body.Components.map(component =>
+              renderFormComponent(component, formValue)
+          )}
+        </n-form>
+    )
   })
 
   function close() {
@@ -337,6 +290,53 @@ const handleModalFromRequest = (item) => {
         item.onComplete();
       }
     })
+  }
+};
+
+// 渲染表单组件的函数
+const renderFormComponent = (component, formValue) => {
+  const commonProps = {
+    path: component.Name,
+    label: component.Label,
+    key: component.Name // 使用name作为key更稳定，避免index带来的问题
+  };
+
+  switch (component.Type) {
+    case 0:
+      return (
+          <n-form-item {...commonProps}>
+            <n-input
+                v-model:value={formValue[component.Name]}
+                placeholder={`请输入${component.Label}`}
+            />
+          </n-form-item>
+      );
+
+    case 1:
+      return (
+          <n-form-item {...commonProps}>
+            <n-input
+                type="textarea"
+                v-model:value={formValue[component.Name]}
+                placeholder={`请输入${component.Label}`}
+                rows={component.rows || 3}
+            />
+          </n-form-item>
+      );
+
+    case 2:
+      return (
+          <n-form-item {...commonProps}>
+            <n-select
+                placeholder={`请选择${component.Label}`}
+                v-model:value={formValue[component.Name]}
+                options={component.Options || []}
+            />
+          </n-form-item>
+      );
+
+    default:
+      return null;
   }
 };
 
