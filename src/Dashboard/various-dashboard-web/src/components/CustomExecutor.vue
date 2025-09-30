@@ -189,7 +189,7 @@ const handleAfterConfirmRequest = (item) => {
         headers: requestHeaders,
         body: requestJsonBody
       }).then(res => res.text()).then(data => {
-        dialogWaring(data);
+        message.info(data);
         item.onComplete();
       }).catch(e => {
         dialogWaring(e);
@@ -348,6 +348,7 @@ processingBackendCalls.push({
 function dialogWaring(message) {
   dialog.warning({
     title: '通知',
+    zIndex: 10000,
     style: {
       marginTop: "250px"
     },

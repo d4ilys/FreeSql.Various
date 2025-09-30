@@ -33,6 +33,7 @@ namespace FreeSql.Various.Dashboard
                 return res;
             });
 
+            
             app.MapGet("/executor", async context =>
             {
                 var response = context.Response;
