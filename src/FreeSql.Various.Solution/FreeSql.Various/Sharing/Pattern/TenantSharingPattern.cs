@@ -21,6 +21,11 @@ public class TenantSharingPattern<TDbKey>(FreeSqlSchedule schedule, VariousTenan
         var refer = UseElaborate(dbKey, tenant);
         return refer.FreeSql;
     }
+    public FreeSqlElaborate<TDbKey> UseElaborate(TDbKey dbKey)
+    {
+        var tenant = tenantContext.GetCurrent();
+        return UseElaborate(dbKey, tenant);
+    }
 
     public FreeSqlElaborate<TDbKey> UseElaborate(TDbKey dbKey, string tenant)
     {

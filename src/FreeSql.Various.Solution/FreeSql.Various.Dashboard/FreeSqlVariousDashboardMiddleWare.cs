@@ -22,6 +22,10 @@ namespace FreeSql.Various.Dashboard
             FreeSqlVariousDashboardOptions options)
         {
             _options = options;
+            if (_options.DashboardPath.StartsWith("/"))
+            {
+                _options.DashboardPath = _options.DashboardPath.Substring(1);
+            }
             _staticFileMiddleware = CreateStaticFileMiddleware(next, hostingEnv, loggerFactory, options);
         }
 

@@ -35,7 +35,7 @@ namespace WebApplication01Test
             {
                 var various = app.Services.GetRequiredService<FreeSqlVarious>();
 
-                options.DashboardPath = "VariousDashboard";
+                options.DashboardPath = "erp/various";
                 options.Enable = true;
                 options.FreeSqlSchedule = various.Schedule;
                 options.VariousDashboard = various.Dashboard;

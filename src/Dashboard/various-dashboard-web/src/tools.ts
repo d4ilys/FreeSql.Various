@@ -3,7 +3,8 @@ const baseUrl = import.meta.env.VITE_API_URL;
 
 export const apiUrl = (path: string) => {
     if (!baseUrl) {
-        return path;
+        if (path.startsWith("/")) path = path.substring(1);
+        return `./${path}`;
     }
 
     // 清除baseUrl末尾的所有斜杠

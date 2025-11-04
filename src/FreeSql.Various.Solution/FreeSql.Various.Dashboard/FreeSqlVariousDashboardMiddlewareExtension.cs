@@ -15,7 +15,7 @@ namespace FreeSql.Various.Dashboard
 
             app.UseMiddleware<FreeSqlVariousDashboardMiddleware>(optionsInternal);
 
-            app.MapGet("/getExecutors", () =>
+            app.MapGet($"{optionsInternal.DashboardPath}/getExecutors", () =>
             {
                 var executors = optionsInternal.VariousDashboard.CustomExecutors;
 
@@ -33,8 +33,7 @@ namespace FreeSql.Various.Dashboard
                 return res;
             });
 
-            
-            app.MapGet("/executor", async context =>
+            app.MapGet($"{optionsInternal.DashboardPath}/executor", async context =>
             {
                 var response = context.Response;
                 //响应头部添加text/event-stream

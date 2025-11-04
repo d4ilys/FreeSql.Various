@@ -7,7 +7,7 @@
 		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Authors>Daily</Authors>
-		<Version>0.0.0.1-preview2025092901</Version>
+		<Version>0.0.0.1</Version>
 		<Description>FreeSql管理器 Dashboard</Description>
 		<IsPackable>true</IsPackable>
 		<RepositoryUrl>https://github.com/d4ilys/FreeSql.Various</RepositoryUrl>
