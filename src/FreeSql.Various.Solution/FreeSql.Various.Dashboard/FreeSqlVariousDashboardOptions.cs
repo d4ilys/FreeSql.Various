@@ -15,5 +15,7 @@ namespace FreeSql.Various.Dashboard
         public FreeSqlSchedule FreeSqlSchedule { get; set; }
 
         public VariousDashboard VariousDashboard { get; set; }
+
+        public List<string> IpWhitelist { get; set; } = new();
     }
 }

@@ -26,38 +26,50 @@ namespace FreeSql.Various.Dashboard
             {
                 _options.DashboardPath = _options.DashboardPath.Substring(1);
             }
+
             _staticFileMiddleware = CreateStaticFileMiddleware(next, hostingEnv, loggerFactory, options);
         }
 
 
         public async Task Invoke(HttpContext context)
         {
-            var httpMethod = context.Request.Method;
-
             var path = context.Request.Path.Value;
-
-            // If the RoutePrefix is requested (with or without trailing slash), redirect to index URL
-            if (httpMethod == "GET" && path != null &&
-                Regex.IsMatch(path, $"^/?{Regex.Escape(_options.DashboardPath)}/?$"))
+            // IP白名单
+            if (path != null && !IsIpWhitelisted(context, path))
             {
-                
-                // Use relative redirect to support proxy environments
-                var relativeRedirectPath = path.EndsWith("/")
-                    ? "index.html"
-                    : $"{path.Split('/').Last()}/index.html";
-
-                RespondWithRedirect(context.Response, relativeRedirectPath);
-                return;
+                //直接无权限
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "text/plain; charset=utf-8";
+                //设置stream存放ResponseBody
+                using var memoryStream = new MemoryStream("Unrequited.."u8.ToArray());
+                await memoryStream.CopyToAsync(context.Response.Body);
             }
-
-            if (httpMethod == "GET" && path != null &&
-                Regex.IsMatch(path, $"^/{Regex.Escape(_options.DashboardPath)}/?index.html$"))
+            else
             {
-                await RespondWithIndexHtmlAsync(context.Response);
-                return;
-            }
+                var httpMethod = context.Request.Method;
 
-            await _staticFileMiddleware.Invoke(context);
+                // If the RoutePrefix is requested (with or without trailing slash), redirect to index URL
+                if (httpMethod == "GET" && path != null &&
+                    Regex.IsMatch(path, $"^/?{Regex.Escape(_options.DashboardPath)}/?$"))
+                {
+                    // Use relative redirect to support proxy environments
+                    var relativeRedirectPath = path.EndsWith("/")
+                        ? "index.html"
+                        : $"{path.Split('/').Last()}/index.html";
+
+                    RespondWithRedirect(context.Response, relativeRedirectPath);
+                    return;
+                }
+
+                if (httpMethod == "GET" && path != null &&
+                    Regex.IsMatch(path, $"^/{Regex.Escape(_options.DashboardPath)}/?index.html$"))
+                {
+                    await RespondWithIndexHtmlAsync(context.Response);
+                    return;
+                }
+
+                await _staticFileMiddleware.Invoke(context);
+            }
         }
 
         StaticFileMiddleware CreateStaticFileMiddleware(
@@ -99,6 +111,32 @@ namespace FreeSql.Various.Dashboard
 
                 await response.WriteAsync(htmlBuilder.ToString(), Encoding.UTF8);
             }
+        }
+
+        private bool IsIpWhitelisted(HttpContext context, string path)
+        {
+            var pattern = @$"^/?{_options.DashboardPath}.*";
+            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+            if (regex.IsMatch(path))
+            {
+                var ipAddress = GetIpAddress(context);
+                return _options.IpWhitelist.Any(ip => ip == ipAddress);
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        private string? GetIpAddress(HttpContext context)
+        {
+            // 兼容反向代理 
+            if (context.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
+            {
+                return forwardedFor;
+            }
+
+            return context.Connection?.RemoteIpAddress?.MapToIPv4()?.ToString();
         }
     }
 }
