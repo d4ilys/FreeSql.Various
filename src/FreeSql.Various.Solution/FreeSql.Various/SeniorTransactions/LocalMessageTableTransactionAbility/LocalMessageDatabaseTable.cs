@@ -89,6 +89,12 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         public string MessageContent { get; set; }
 
         /// <summary>
+        /// 租户标记
+        /// </summary>
+        [Column(Name = "tenant_mark", StringLength = 50)]
+        public string TenantMark { get; set; }
+
+        /// <summary>
         /// 错误信息
         /// </summary>
         [Column(Name = "error_message", StringLength = -1)]

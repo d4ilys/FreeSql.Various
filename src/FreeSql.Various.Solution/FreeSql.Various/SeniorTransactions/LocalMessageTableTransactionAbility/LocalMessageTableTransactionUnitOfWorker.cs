@@ -119,6 +119,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     TaskDescribe = describe,
                     MessageTime = DateTime.Now,
                     Retries = 0,
+                    TenantMark = tenantMark,
                     MessageContent = content,
                 }).ExecuteAffrows();
 
@@ -127,6 +128,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     Id = _id,
                     TaskKey = taskKey,
                     TaskDescribe = describe,
+                    TenantMark = tenantMark,
                     MessageTime = DateTime.Now,
                     MessageContent = content,
                     Group = string.Empty,
@@ -151,6 +153,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     Group = group,
                     GroupEnsureOrderliness = groupEnsureOrderliness,
                     TaskDescribe = describe,
+                    TenantMark = tenantMark,
                     MessageTime = DateTime.Now,
                     Retries = 0,
                     MessageContent = content,
@@ -161,6 +164,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     Id = _id,
                     TaskKey = taskKey,
                     TaskDescribe = describe,
+                    TenantMark = tenantMark,
                     MessageTime = DateTime.Now,
                     MessageContent = content,
                     Governing = governing,
