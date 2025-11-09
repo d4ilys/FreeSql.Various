@@ -15,7 +15,8 @@ namespace FreeSql.Various
 
             //事务Fsql对象
             var tranFreeSql = freeSqlUnitOfWork.Orm;
-            localMessageTableTransactionUnitOfWorker.Reliable(tranFreeSql, taskKey, content, governing, group);
+            localMessageTableTransactionUnitOfWorker.Reliable(tranFreeSql, taskKey, content, governing, group,
+                various.TenantContext.GetCurrent());
 
             //如果主动触发执行 则携带到UnitOfWorker通过Aop执行
             if (!activeDo)

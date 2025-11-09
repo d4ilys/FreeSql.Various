@@ -6,21 +6,19 @@ namespace FreeSql.Various.Sharing;
 /// <summary>
 /// 支持多种分库模式
 /// </summary>
-/// <param name="schedule"></param>
-/// <param name="tenantContext"></param>
 /// <typeparam name="TDbKey"></typeparam>
-public class VariousSharingPatterns<TDbKey>(FreeSqlSchedule schedule, VariousTenantContext tenantContext) where TDbKey : notnull
+public class VariousSharingPatterns<TDbKey>(FreeSqlVarious<TDbKey> various) where TDbKey : notnull
 {
     /// <summary>
     /// 时间范围分库
     /// </summary>
-    public TimeRangeSharingPattern<TDbKey> TimeRange => new TimeRangeSharingPattern<TDbKey>(schedule, tenantContext);
+    public TimeRangeSharingPattern<TDbKey> TimeRange => new TimeRangeSharingPattern<TDbKey>(various.Schedule, various.TenantContext);
 
 
     /// <summary>
     /// 哈希分库
     /// </summary>
-    public HashSharingPattern<TDbKey> Hash => new HashSharingPattern<TDbKey>(schedule, tenantContext);
+    public HashSharingPattern<TDbKey> Hash => new HashSharingPattern<TDbKey>(various.Schedule, various.TenantContext);
 
 
     /// <summary>
@@ -31,5 +29,5 @@ public class VariousSharingPatterns<TDbKey>(FreeSqlSchedule schedule, VariousTen
     /// <summary>
     /// 租户分库
     /// </summary>
-    public TenantSharingPattern<TDbKey> Tenant => new TenantSharingPattern<TDbKey>(schedule, tenantContext);
+    public TenantSharingPattern<TDbKey> Tenant => new TenantSharingPattern<TDbKey>(various.Schedule, various.TenantContext);
 }

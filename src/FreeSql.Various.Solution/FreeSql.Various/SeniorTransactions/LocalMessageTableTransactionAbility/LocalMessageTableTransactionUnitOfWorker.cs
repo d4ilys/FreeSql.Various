@@ -1,13 +1,15 @@
 ﻿using FreeSql.Various.Utilitys;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using FreeSql.Various.Contexts;
 
 namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 {
     public class LocalMessageTableTransactionUnitOfWorker(
         ConcurrentDictionary<string, Func<string, Task<bool>>> tasks,
         FreeSqlSchedule schedule,
-        LocalMessageTableDispatchConfig config)
+        LocalMessageTableDispatchConfig config,
+        VariousTenantContext tenantContext)
     {
         private uint _reliableCount = 0;
 
@@ -23,6 +25,8 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
         private string _governing = string.Empty;
 
+        private string _tenantMark = string.Empty;
+
         /// <summary>
         /// 借助事务持久化本地消息表
         /// </summary>
@@ -31,8 +35,10 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         /// <param name="content">任务内容</param>
         /// <param name="governing">任务调度者</param>
         /// <param name="group">任务组</param>
+        /// <param name="tenantMark"></param>
         /// <exception cref="Exception"></exception>
-        public void Reliable(IFreeSql tranFreeSql, string taskKey, string content, string governing, string group)
+        public void Reliable(IFreeSql tranFreeSql, string taskKey, string content, string governing, string group,
+            string tenantMark)
         {
             // 一个对象 防止绑定多次
             if (Interlocked.Add(ref _reliableCount, 1) > 1)
@@ -49,6 +55,8 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
             _taskKey = taskKey;
 
             _governing = governing;
+
+            _tenantMark = tenantMark;
 
             VariousMemoryCache.LocalMessageTableTaskDescribe.TryGetValue(taskKey, out var describe);
 
@@ -187,7 +195,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
             var ela = schedule.Get(key);
 
-            var execResult = await ScheduleDoAsync(_id, _taskKey, _content, _governing, ela.FreeSql);
+            var execResult = await ScheduleDoAsync(_id, _taskKey, _content, _governing, ela.FreeSql, _tenantMark);
 
             return execResult;
         }
@@ -211,7 +219,9 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
 
             try
             {
+                tenantContext.Set(tenantMark);
                 execResult = await method!.Invoke(content);
+                tenantContext.Clear();
             }
             catch (Exception e)
             {

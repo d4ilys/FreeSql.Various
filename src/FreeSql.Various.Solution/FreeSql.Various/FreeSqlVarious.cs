@@ -17,8 +17,8 @@ public class FreeSqlVarious<TDbKey> where TDbKey : notnull
         TenantContext = new VariousTenantContext();
         Schedule = new FreeSqlSchedule();
         Dashboard = new VariousDashboard();
-        SharingPatterns = new VariousSharingPatterns<TDbKey>(Schedule, TenantContext);
-        SeniorTransactions = new VariousSeniorTransactions<TDbKey>(Schedule);
+        SharingPatterns = new VariousSharingPatterns<TDbKey>(this);
+        SeniorTransactions = new VariousSeniorTransactions<TDbKey>(this);
     }
 
     /// <summary>
