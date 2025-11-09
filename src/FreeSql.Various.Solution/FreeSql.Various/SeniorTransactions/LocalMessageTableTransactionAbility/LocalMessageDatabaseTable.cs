@@ -27,6 +27,12 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         public DateTime MessageTime { get; set; }
 
         /// <summary>
+        /// 租户标记
+        /// </summary>
+        [Column(Name = "tenant_mark", StringLength = 50)]
+        public string TenantMark { get; set; }
+
+        /// <summary>
         /// 重试次数
         /// </summary>
         [Column(Name = "retries")]

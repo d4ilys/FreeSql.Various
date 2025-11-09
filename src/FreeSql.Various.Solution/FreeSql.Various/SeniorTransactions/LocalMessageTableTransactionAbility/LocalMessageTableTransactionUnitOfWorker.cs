@@ -97,7 +97,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
                     return true;
                 }));
 
-            if (!syncResult.Value) return;
+            _ = syncResult.Value;
 
             describe ??= "无描述";
 
@@ -193,7 +193,7 @@ namespace FreeSql.Various.SeniorTransactions.LocalMessageTableTransactionAbility
         }
 
         internal async Task<bool> ScheduleDoAsync(string id, string taskKey, string content, string governing,
-            IFreeSql db)
+            IFreeSql db, string tenantMark)
         {
             var tryGetValue =
                 tasks.TryGetValue(taskKey,
